@@ -1,0 +1,50 @@
+# ── Rust / Anchor ──
+target/
+.anchor/
+test-ledger/
+.anchor/test-ledger/
+*.so
+*.d.ts.map
+
+# ── Node ──
+node_modules/
+**/node_modules/
+dist/
+app/dist/
+app/node_modules/
+server/dist/
+server/node_modules/
+
+# ── Environment files — NEVER commit these ──
+.env
+.env.local
+.env.production
+.env.development
+**/.env
+**/.env.local
+
+# ── Solana wallet keys — NEVER commit these ──
+id.json
+*.keypair.json
+wallet.json
+
+# ── OS / Editor ──
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Build artifacts (keep .arcis — needed for GitHub Release) ──
+build/*.ir
+build/*.hash
+build/*.weight
+build/*.idarc
+build/*.profile.json
+
+# ── Logs ──
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
