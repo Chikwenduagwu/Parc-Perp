@@ -1,0 +1,19 @@
+[toolchain]
+anchor_version = "0.32.0"
+
+[features]
+seeds = false
+skip-lint = false
+
+[programs.devnet]
+stealth_perps = "3DHnmtHxAkKq6oMzydRMNS7yduYT4Ee1ecAdXWniEGzx"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
