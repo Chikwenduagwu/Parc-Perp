@@ -28,8 +28,8 @@ wallet = "~/.config/solana/id.json"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [circuits]
-open_position     = "https://snkekjxagpohoxwnqplm.supabase.co/storage/v1/object/public/arcium-circuits/apply_funding.arcis"
-check_liquidation = "https://snkekjxagpohoxwnqplm.supabase.co/storage/v1/object/public/arcium-circuits/check_liquidation.arcis"
-calculate_pnl     = "https://snkekjxagpohoxwnqplm.supabase.co/storage/v1/object/public/arcium-circuits/calculate_pnl.arcis"
-apply_funding     = "https://snkekjxagpohoxwnqplm.supabase.co/storage/v1/object/public/arcium-circuits/apply_funding.arcis"
+open_position     = "https://github.com/Chikwenduagwu/Parc-Perp/releases/download/v1.0.0/open_position.arcis"
+check_liquidation = "https://github.com/Chikwenduagwu/Parc-Perp/releases/download/v1.0.0/check_liquidation.arcis"
+calculate_pnl     = "https://github.com/Chikwenduagwu/Parc-Perp/releases/download/v1.0.0/calculate_pnl.arcis"
+apply_funding     = "https://github.com/Chikwenduagwu/Parc-Perp/releases/download/v1.0.0/apply_funding.arcis"
 
