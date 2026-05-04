@@ -1,4 +1,4 @@
-# 🔐 Stealth Perps — Private Perpetual Trading on Solana
+# 🔐 Parc-Perp — Private Perpetual Trading on Solana
 
 Fully private perpetual futures powered by **Arcium MPC**.
 Positions, orders, and liquidations compute privately. Only final PnL is revealed.
@@ -60,7 +60,3 @@ CORS_ORIGINS=https://your-app.vercel.app
 PORT=4000
 ```
 
-## Full Deployment Guide
-
-See the deployment guide PDF (stealth-perps-guide.docx) for the complete
-step-by-step: Gitpod → Supabase → Devnet → Render → Vercel.
