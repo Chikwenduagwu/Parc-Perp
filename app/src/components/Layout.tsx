@@ -30,7 +30,7 @@ export default function Layout({ activePage, onNavigate }: Props) {
           onClick={() => onNavigate("home")}
           className="font-display text-lg font-black tracking-tighter text-white uppercase"
         >
-          STEALTH<span style={{ color: "var(--color-green)" }}>PERPS</span>
+          PARC<span style={{ color: "var(--color-green)" }}>PERPS</span>
         </button>
 
         <nav className="hidden md:flex items-center gap-5">
