@@ -1,1015 +1,865 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
-@import url('https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/**
+ * TradingPage.tsx — Polished trading terminal
+ * Theme: Cornsilk background · Crimson red · Ink black
+ * Mobile: TopBar → MarketStrip → PriceHeader → StatsBar → Chart → Tabs[Order|Positions|Markets] → BottomNav(Home|Markets)
+ * Desktop: [MarketList | Chart + Positions | TradingPanel]
+ */
 
-/* ═══════════════════════════════════════════════════
-   DESIGN TOKENS
-   Palette: cornsilk bg · black ink · red accent
-═══════════════════════════════════════════════════ */
-:root {
-  /* ── Backgrounds ── */
-  --bg:           #FFF8DC;   /* cornsilk */
-  --bg-2:         #FFF0B3;   /* deeper cornsilk */
-  --bg-3:         #F5E696;   /* pressed */
-  --surface:      #FFFEF8;   /* near-white warm panel */
-  --surface-2:    #FFFBEC;   /* panel variant */
+import { useEffect, useState } from "react";
+import Layout from "../components/Layout";
+import MarketList from "../components/MarketList";
+import TradingPanel from "../components/TradingPanel";
+import PositionTable from "../components/PositionTable";
+import PriceChart from "../components/PriceChart";
+import { usePositions } from "../hooks/usePositions";
+import { useMarketData } from "../hooks/useMarketData";
+import type { AppPage } from "../App";
 
-  /* ── Ink — ALL ≥ 4.5:1 on cornsilk ──
-     #0A0A0A on #FFF8DC = 19.1:1 ✓
-     #2C2A26 on #FFF8DC = 13.8:1 ✓
-     #5C5851 on #FFF8DC =  7.0:1 ✓
-     #7A7570 on #FFF8DC =  4.8:1 ✓ (labels only)  */
-  --ink:          #0A0A0A;
-  --ink-2:        #2C2A26;
-  --ink-3:        #5C5851;
-  --ink-4:        #7A7570;
-  --ink-5:        #B0A89E;   /* decorative only */
-
-  /* ── Red — primary accent (replaces neon green from dark theme) ──
-     #9B1C1C on #FFF8DC = 8.4:1 ✓ AA+
-     #C0392B on #FFF8DC = 5.6:1 ✓ AA          */
-  --red:          #C0392B;
-  --red-bold:     #9B1C1C;
-  --red-bright:   #E74C3C;
-  --red-dim:      rgba(192,57,43,0.08);
-  --red-tint:     rgba(192,57,43,0.14);
-  --red-glow:     rgba(231,76,60,0.22);
-
-  /* ── Green — profit signals only ── */
-  --green:        #0D7A52;
-  --green-bold:   #0A5E3F;
-  --green-bright: #16A96E;
-  --green-dim:    rgba(13,122,82,0.08);
-  --green-tint:   rgba(13,122,82,0.14);
-  --green-glow:   rgba(22,169,110,0.22);
-
-  /* ── Amber ── */
-  --amber:        #956D00;
-  --amber-dim:    rgba(149,109,0,0.09);
-  --cornsilk-mid: #EDD98A;
-  --cornsilk-deep:#C9A84C;
-
-  /* ── Blue ── */
-  --blue:         #1A4E7A;
-  --blue-dim:     rgba(26,78,122,0.08);
-
-  /* ── Borders ── */
-  --border:       rgba(10,10,10,0.10);
-  --border-2:     rgba(10,10,10,0.17);
-  --border-3:     rgba(10,10,10,0.26);
-  --border-red:   rgba(192,57,43,0.24);
-  --border-green: rgba(13,122,82,0.22);
-
-  /* ── Fonts ── */
-  --font-display: 'Cormorant Garamond', Georgia, serif;
-  --font-body:    'Lora', Georgia, serif;
-  --font-mono:    'IBM Plex Mono', 'Courier New', monospace;
-
-  /* ── Shadows (warm-tinted) ── */
-  --shadow-xs: 0 1px 2px rgba(10,10,10,0.07);
-  --shadow-sm: 0 2px 8px rgba(10,10,10,0.09), 0 1px 2px rgba(10,10,10,0.05);
-  --shadow-md: 0 4px 18px rgba(10,10,10,0.11), 0 2px 4px rgba(10,10,10,0.06);
-  --shadow-lg: 0 8px 36px rgba(10,10,10,0.13), 0 4px 8px rgba(10,10,10,0.07);
-
-  /* ── Radii ── */
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   16px;
-  --radius-pill: 100px;
-
-  /* ── Spacing ── */
-  --space-1:  4px;  --space-2:  8px;  --space-3: 12px;
-  --space-4: 16px;  --space-5: 20px;  --space-6: 24px;
-  --space-8: 32px;  --space-10:40px;
-
-  /* ── Touch / Layout ── */
-  --touch-min:    44px;
-  --nav-h:        56px;
-  --bottom-nav-h: 60px;
-
-  /* ── Transitions ── */
-  --t-fast:   150ms cubic-bezier(0.4,0,0.2,1);
-  --t-base:   220ms cubic-bezier(0.4,0,0.2,1);
-  --t-slow:   380ms cubic-bezier(0.4,0,0.2,1);
-  --t-spring: 320ms cubic-bezier(0.34,1.56,0.64,1);
-
-  /* ── Legacy map — so old component vars still work ── */
-  --color-bg:       var(--bg);
-  --color-surface:  var(--surface);
-  --color-surface-2:var(--surface-2);
-  --color-border:   var(--border);
-  --color-border-2: var(--border-2);
-  --color-text:     var(--ink-2);
-  --color-text-2:   var(--ink-3);
-  --color-text-3:   var(--ink-4);
-  --color-green:    var(--green);
-  --color-red:      var(--red);
+// ─── Props ────────────────────────────────────────────────────────────────────
+interface Props {
+  market: string;
+  onNavigate: (p: AppPage) => void;
+  onMarketChange: (m: string) => void;
 }
 
-/* ═══════════════════════════════════════════════════
-   BASE RESET
-═══════════════════════════════════════════════════ */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0; padding: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-html {
-  font-size: 16px;
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-html, body {
-  min-height: 100%; min-height: 100dvh;
-  background: var(--bg);
-  color: var(--ink-2);
-  font-family: var(--font-body);
-  line-height: 1.65;
-  letter-spacing: 0.01em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
-  overflow-x: hidden;
-}
-body { padding-bottom: env(safe-area-inset-bottom); }
+type MobileTab = "order" | "positions" | "markets";
 
-::selection { background: var(--cornsilk-mid); color: var(--ink); }
-:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; border-radius: 3px; }
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const T = {
+  // Backgrounds — warm cornsilk paper
+  bg:          "#FFF8DC",
+  bgPaper:     "#FDF5CC",
+  bgDeep:      "#F5EDB0",
+  surface:     "#FFFEF7",
+  surfaceCard: "#FFFCF0",
 
-/* ═══════════════════════════════════════════════════
-   TYPOGRAPHY
-═══════════════════════════════════════════════════ */
-h1,h2,h3,h4,h5,h6 {
-  font-family: var(--font-display);
-  font-feature-settings: 'kern' 1,'liga' 1,'dlig' 1;
-  letter-spacing: -0.01em;
-  line-height: 1.12;
-  color: var(--ink);
-}
-h1 { font-size: clamp(1.75rem, 5vw,   4rem);    font-weight: 600; }
-h2 { font-size: clamp(1.4rem,  3.5vw, 2.6rem);  font-weight: 500; }
-h3 { font-size: clamp(1.1rem,  2.5vw, 1.8rem);  font-weight: 500; }
-h4 { font-size: clamp(0.95rem, 2vw,   1.25rem); font-weight: 500; }
+  // Ink
+  ink:         "#0D0D0D",
+  ink2:        "#1A1A1A",
+  ink3:        "#3D3830",
+  ink4:        "#7A7264",
+  ink5:        "#B8B09E",
 
-p, li, label, td, th {
-  font-family: var(--font-body);
-  color: var(--ink-2);
-}
-.font-display { font-family: var(--font-display) !important; }
-.font-body    { font-family: var(--font-body)    !important; }
-.font-mono    { font-family: var(--font-mono)    !important; }
-.font-mono, code, kbd, pre {
-  font-family: var(--font-mono);
-  font-feature-settings: 'zero' 1,'tnum' 1;
-  letter-spacing: 0;
-}
+  // Red — primary accent
+  red:         "#B71C1C",
+  redBright:   "#D32F2F",
+  redDeep:     "#7F0000",
+  redDim:      "rgba(183,28,28,0.08)",
+  redTint:     "rgba(183,28,28,0.15)",
+  redBorder:   "rgba(183,28,28,0.25)",
+  redGlow:     "rgba(211,47,47,0.20)",
 
-/* Colour helpers */
-.text-ink       { color: var(--ink); }
-.text-secondary { color: var(--ink-3); }
-.text-muted     { color: var(--ink-4); }
-.text-green     { color: var(--green-bold); }
-.text-red       { color: var(--red-bold); }
-.text-amber     { color: var(--amber); }
+  // Cornsilk tones — decorative
+  gold:        "#C9963A",
+  goldDim:     "rgba(201,150,58,0.12)",
+  goldBorder:  "rgba(201,150,58,0.30)",
 
-/* ═══════════════════════════════════════════════════
-   SCROLLBAR
-═══════════════════════════════════════════════════ */
-.scroll-hide::-webkit-scrollbar { display: none; }
-.scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
-.scroll-styled::-webkit-scrollbar       { width: 3px; height: 3px; }
-.scroll-styled::-webkit-scrollbar-track { background: transparent; }
-.scroll-styled::-webkit-scrollbar-thumb { background: var(--border-3); border-radius: 2px; }
-.scroll-styled::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+  // Status
+  green:       "#1B6B45",
+  greenBright: "#2E9E67",
+  greenDim:    "rgba(27,107,69,0.10)",
+  greenBorder: "rgba(27,107,69,0.25)",
 
-/* ═══════════════════════════════════════════════════
-   GLASS SURFACES
-═══════════════════════════════════════════════════ */
-.glass {
-  background: rgba(255,254,248,0.84);
-  backdrop-filter: blur(20px) saturate(130%);
-  -webkit-backdrop-filter: blur(20px) saturate(130%);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-}
-.glass-bright {
-  background: rgba(255,254,248,0.97);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  border: 1px solid var(--border-2);
-  box-shadow: var(--shadow-md);
-}
-.glass-warm {
-  background: rgba(255,248,220,0.90);
-  backdrop-filter: blur(16px) saturate(120%);
-  -webkit-backdrop-filter: blur(16px) saturate(120%);
-  border: 1px solid rgba(192,57,43,0.10);
-  box-shadow: var(--shadow-sm);
-}
+  // Borders on cornsilk
+  border:      "rgba(13,13,13,0.10)",
+  border2:     "rgba(13,13,13,0.16)",
+  border3:     "rgba(13,13,13,0.24)",
+};
 
-/* ═══════════════════════════════════════════════════
-   TRADE ROOT — controls which layout is visible
-═══════════════════════════════════════════════════ */
-.trade-root {
-  min-height: 100dvh;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-}
+// ─── Tiny style helpers ───────────────────────────────────────────────────────
+const mono: React.CSSProperties = { fontFamily: "'IBM Plex Mono', monospace" };
+const serif: React.CSSProperties = { fontFamily: "'Cormorant Garamond', Georgia, serif" };
+const row = (extra?: React.CSSProperties): React.CSSProperties => ({
+  display: "flex", alignItems: "center", ...extra,
+});
+const col = (extra?: React.CSSProperties): React.CSSProperties => ({
+  display: "flex", flexDirection: "column", ...extra,
+});
 
-/* ── Desktop layout — hidden on mobile ── */
-.trade-desktop-layout {
-  display: none;
-}
-@media (min-width: 1024px) {
-  .trade-desktop-layout {
-    display: grid;
-    grid-template-columns: 200px 1fr 300px;
-    flex: 1;
-    height: calc(100dvh - var(--nav-h));
-    margin-top: var(--nav-h);
-    overflow: hidden;
-    border-top: 1px solid var(--border);
+export default function TradingPage({
+  market: initialMarket,
+  onNavigate,
+  onMarketChange,
+}: Props) {
+  const [selectedMarket, setSelectedMarket] = useState(initialMarket);
+  const [mobileTab, setMobileTab]           = useState<MobileTab>("order");
+  const [direction, setDirection]           = useState<"long" | "short">("long");
+
+  const { markets, wsConnected, getCandles } = useMarketData();
+  const {
+    positions, computationStatus, lastTxSig,
+    openPosition, closePosition, updatePnl,
+  } = usePositions();
+
+  const active        = markets[selectedMarket];
+  const candles       = getCandles(selectedMarket);
+  const prices        = Object.fromEntries(
+    Object.entries(markets).map(([s, m]) => [s, m.price])
+  );
+  const openPositions = positions.filter((p) => p.status === "open");
+  const totalPnl      = openPositions.reduce((s, p) => s + p.unrealizedPnl, 0);
+
+  useEffect(() => { updatePnl(prices); }, [JSON.stringify(prices)]);
+
+  function handleSelect(sym: string) {
+    setSelectedMarket(sym);
+    onMarketChange(sym);
+    setMobileTab("order");
   }
-  .trade-mobile-layout { display: none !important; }
-}
 
-/* ── Mobile layout — hidden on desktop ── */
-.trade-mobile-layout {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  margin-top: var(--nav-h);
-  height: calc(100dvh - var(--nav-h));
-  overflow: hidden;
-  position: relative;
-}
-@media (min-width: 1024px) {
-  .trade-mobile-layout { display: none; }
-}
-
-/* ═══════════════════════════════════════════════════
-   MARKET HEADER (shared mobile + desktop)
-═══════════════════════════════════════════════════ */
-.trade-market-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  min-height: 56px;
-}
-
-.trade-symbol-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 2px;
-  min-height: var(--touch-min);
-  border-radius: var(--radius-sm);
-  transition: background var(--t-fast);
-  flex-shrink: 0;
-}
-.trade-symbol-btn:hover { background: var(--bg-2); }
-
-.trade-symbol-pair {
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--ink);
-  text-transform: uppercase;
-}
-
-.trade-price-block {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-}
-
-.trade-price-value {
-  font-family: var(--font-mono);
-  font-size: clamp(1.1rem, 3vw, 1.5rem);
-  font-weight: 700;
-  color: var(--ink);
-  font-feature-settings: 'tnum' 1;
-  letter-spacing: -0.02em;
-}
-
-.trade-price-change {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: var(--radius-pill);
-  letter-spacing: 0.03em;
-}
-
-/* Stats — hidden on small phones, show tablet+ */
-.trade-stats-row {
-  display: none;
-  align-items: center;
-  gap: var(--space-5);
-  flex: 1;
-}
-@media (min-width: 640px) {
-  .trade-stats-row { display: flex; }
-}
-
-.trade-stat-item { display: flex; flex-direction: column; gap: 1px; }
-
-.trade-stat-label {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-4);
-}
-
-.trade-stat-value {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ink-2);
-  font-feature-settings: 'tnum' 1;
-}
-
-.trade-header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.trade-positions-badge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  background: var(--green-dim);
-  border: 1px solid var(--border-green);
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-}
-.trade-positions-count { font-weight: 700; color: var(--green-bold); }
-.trade-positions-label { color: var(--ink-3); }
-
-.trade-ws-badge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border: 1px solid;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-
-/* ═══════════════════════════════════════════════════
-   DESKTOP COLUMNS
-═══════════════════════════════════════════════════ */
-.trade-market-sidebar {
-  border-right: 1px solid var(--border);
-  background: var(--surface-2);
-  overflow-y: auto;
-  height: 100%;
-}
-
-.trade-center-col {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-}
-
-.trade-chart-wrap {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-  overflow: hidden;
-}
-
-.trade-positions-wrap {
-  border-top: 1px solid var(--border);
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: 220px;
-  flex-shrink: 0;
-  background: var(--surface-2);
-}
-
-.trade-order-sidebar {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  background: var(--surface);
-  height: 100%;
-}
-
-.trade-order-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-2);
-  flex-shrink: 0;
-}
-
-.trade-order-title {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-/* ═══════════════════════════════════════════════════
-   MOBILE PANELS + BOTTOM NAV
-═══════════════════════════════════════════════════ */
-.trade-mobile-panels {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-  /* Space for bottom nav */
-  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
-}
-
-.trade-mobile-panel {
-  display: none;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  background: var(--bg);
-  position: absolute;
-  inset: 0;
-}
-.trade-mobile-panel.active {
-  display: flex;
-  animation: fade-in 0.18s ease-out;
-}
-
-.trade-mobile-pnl-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-.trade-mobile-pnl-label {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-4);
-}
-.trade-mobile-pnl-value {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  font-weight: 700;
-  font-feature-settings: 'tnum' 1;
-  letter-spacing: -0.01em;
-}
-
-/* ── Bottom Nav ── */
-.bottom-nav {
-  display: flex;
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  z-index: 90;
-  background: rgba(255,254,248,0.98);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border-top: 1px solid var(--border-2);
-  box-shadow: 0 -2px 12px rgba(10,10,10,0.07);
-  height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.bottom-nav-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-height: var(--touch-min);
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-4);
-  cursor: pointer;
-  border: none;
-  background: none;
-  transition: color var(--t-fast), background var(--t-fast);
-  position: relative;
-  padding: 0;
-}
-.bottom-nav-item .material-symbols-outlined { font-size: 22px; }
-.bottom-nav-item.active { color: var(--red-bold); }
-.bottom-nav-item:hover:not(.active) { color: var(--ink-2); background: var(--bg-2); }
-
-@media (min-width: 1024px) {
-  .bottom-nav { display: none; }
-}
-
-/* ═══════════════════════════════════════════════════
-   BUTTONS — 44px touch targets everywhere
-═══════════════════════════════════════════════════ */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: var(--touch-min);
-  padding: 10px var(--space-5);
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  user-select: none;
-  white-space: nowrap;
-  transition: background var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast), color var(--t-fast);
-}
-.btn:active        { transform: scale(0.98); }
-.btn:disabled      { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
-.btn:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
-
-/* Primary — black bg, cornsilk text */
-.btn-primary {
-  background: var(--ink);
-  color: var(--cornsilk-mid);
-  box-shadow: var(--shadow-sm);
-}
-.btn-primary:hover { background: var(--ink-2); box-shadow: var(--shadow-md); transform: translateY(-1px); }
-
-/* Secondary */
-.btn-secondary {
-  background: transparent;
-  color: var(--ink-2);
-  border: 1.5px solid var(--border-3);
-}
-.btn-secondary:hover { background: var(--bg-2); border-color: var(--red); color: var(--red-bold); }
-
-/* Ghost */
-.btn-ghost {
-  background: transparent;
-  color: var(--ink-3);
-  min-height: var(--touch-min);
-}
-.btn-ghost:hover { background: var(--red-dim); color: var(--red-bold); }
-
-/* Long — keeps green for profit signal clarity */
-.btn-long {
-  width: 100%; min-height: 52px;
-  background: var(--green-dim);
-  color: var(--green-bold);
-  border: 1.5px solid var(--border-green);
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 0.875rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-radius: var(--radius-md);
-}
-.btn-long:hover {
-  background: var(--green-tint);
-  border-color: var(--green);
-  box-shadow: 0 0 16px var(--green-glow);
-  transform: translateY(-1px);
-}
-
-/* Short — red dominant */
-.btn-short {
-  width: 100%; min-height: 52px;
-  background: var(--red-dim);
-  color: var(--red-bold);
-  border: 1.5px solid var(--border-red);
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 0.875rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-radius: var(--radius-md);
-}
-.btn-short:hover {
-  background: var(--red-tint);
-  border-color: var(--red);
-  box-shadow: 0 0 16px var(--red-glow);
-  transform: translateY(-1px);
-}
-
-.btn-long:active, .btn-short:active { transform: scale(0.98); }
-
-.trade-action-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-  padding: var(--space-4);
-}
-
-/* ═══════════════════════════════════════════════════
-   SIDE TABS — Long / Short toggle
-═══════════════════════════════════════════════════ */
-.side-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-2);
-}
-.side-tab {
-  padding: var(--space-3) var(--space-4);
-  min-height: var(--touch-min);
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-align: center;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  color: var(--ink-4);
-  border-bottom: 2px solid transparent;
-  transition: all var(--t-fast);
-}
-.side-tab.long.active  { color: var(--green-bold); background: var(--green-dim); border-bottom-color: var(--green); }
-.side-tab.short.active { color: var(--red-bold);   background: var(--red-dim);   border-bottom-color: var(--red); }
-.side-tab:hover:not(.active) { color: var(--ink-2); background: var(--bg-3); }
-
-/* ═══════════════════════════════════════════════════
-   TRADING INPUT — 16px prevents iOS zoom
-═══════════════════════════════════════════════════ */
-.t-input {
-  background: var(--bg-2);
-  border: 1.5px solid var(--border-2);
-  border-radius: var(--radius-sm);
-  color: var(--ink);
-  padding: 12px var(--space-3);
-  width: 100%;
-  min-height: var(--touch-min);
-  font-family: var(--font-mono);
-  font-size: 1rem;             /* 16px — no iOS zoom */
-  font-weight: 400;
-  font-feature-settings: 'tnum' 1;
-  outline: none;
-  caret-color: var(--red);
-  -webkit-appearance: none;
-  appearance: none;
-  transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
-}
-.t-input:focus {
-  background: var(--surface);
-  border-color: var(--red);
-  box-shadow: 0 0 0 3px var(--red-dim);
-}
-.t-input::placeholder { color: var(--ink-4); font-weight: 300; }
-.t-input:disabled     { opacity: 0.45; cursor: not-allowed; }
-
-.input-group   { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
-.input-label   { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
-.input-wrap    { position: relative; display: flex; align-items: center; }
-.input-suffix  { position: absolute; right: var(--space-3); font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--red-bold); pointer-events: none; letter-spacing: 0.05em; }
-
-/* ═══════════════════════════════════════════════════
-   CHIPS
-═══════════════════════════════════════════════════ */
-.chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-  font-size: 0.7rem; font-weight: 600;
-  letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.4;
-}
-.chip-green    { background: var(--green-dim);  border: 1px solid rgba(13,122,82,0.20);  color: var(--green-bold); }
-.chip-red      { background: var(--red-dim);    border: 1px solid rgba(192,57,43,0.22);  color: var(--red-bold); }
-.chip-amber    { background: var(--amber-dim);  border: 1px solid rgba(149,109,0,0.20);  color: var(--amber); }
-.chip-blue     { background: var(--blue-dim);   border: 1px solid rgba(26,78,122,0.20);  color: var(--blue); }
-.chip-cornsilk { background: rgba(237,217,138,0.20); border: 1px solid rgba(201,168,76,0.30); color: var(--amber); }
-
-/* ═══════════════════════════════════════════════════
-   ORDER BOOK
-═══════════════════════════════════════════════════ */
-.orderbook { font-family: var(--font-mono); font-size: 0.75rem; font-feature-settings: 'tnum' 1; }
-
-.orderbook-header {
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border);
-}
-.orderbook-header span {
-  font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--ink-4); font-family: var(--font-mono);
-}
-.orderbook-header span:not(:first-child) { text-align: right; }
-
-.orderbook-row {
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
-  padding: 4px var(--space-3);
-  position: relative; min-height: 28px;
-  align-items: center; cursor: default;
-  transition: background var(--t-fast);
-}
-.orderbook-row:hover { background: rgba(10,10,10,0.04); }
-.orderbook-row::before {
-  content: ''; position: absolute; top:0; bottom:0; right:0;
-  width: var(--depth, 0%); pointer-events: none; border-radius: 2px 0 0 2px;
-}
-.orderbook-ask::before { background: var(--red-dim); }
-.orderbook-bid::before { background: var(--green-dim); }
-.orderbook-ask .price-col { color: var(--red-bold); font-weight: 600; }
-.orderbook-bid .price-col { color: var(--green-bold); font-weight: 600; }
-.size-col  { color: var(--ink-3); text-align: right; }
-.total-col { color: var(--ink-4); text-align: right; }
-
-.orderbook-spread {
-  padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
-  font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-4);
-}
-.spread-value { color: var(--red); font-weight: 700; }
-
-/* ═══════════════════════════════════════════════════
-   POSITIONS TABLE
-═══════════════════════════════════════════════════ */
-.positions-wrap {
-  overflow-x: auto; -webkit-overflow-scrolling: touch;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface); box-shadow: var(--shadow-xs);
-}
-.positions-table {
-  width: 100%; min-width: 560px;
-  border-collapse: collapse;
-  font-family: var(--font-mono); font-size: 0.8125rem; font-feature-settings: 'tnum' 1;
-}
-.positions-table th {
-  padding: var(--space-3) var(--space-4);
-  text-align: left; font-size: 0.65rem; font-weight: 600;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--ink-4); border-bottom: 1px solid var(--border);
-  white-space: nowrap; background: var(--bg-2);
-}
-.positions-table td {
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border);
-  color: var(--ink-2); white-space: nowrap;
-}
-.tr-hover:hover td { background: rgba(192,57,43,0.04); transition: background var(--t-fast); }
-
-/* Mobile position card */
-.position-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-xs); }
-.position-card-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.8125rem; }
-.position-card-row:last-child { border-bottom: none; }
-.position-card-key   { color: var(--ink-4); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; }
-.position-card-value { color: var(--ink-2); font-weight: 600; }
-
-/* ═══════════════════════════════════════════════════
-   LEVERAGE SLIDER
-═══════════════════════════════════════════════════ */
-input[type="range"] {
-  -webkit-appearance: none; appearance: none;
-  height: 4px; width: 100%;
-  background: var(--border-2);
-  border-radius: 2px; outline: none; cursor: pointer;
-  transition: background var(--t-fast);
-}
-input[type="range"]:hover { background: rgba(192,57,43,0.25); }
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none;
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--surface); border: 2px solid var(--red);
-  box-shadow: var(--shadow-sm); cursor: pointer;
-  transition: transform var(--t-spring), box-shadow var(--t-fast);
-}
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 0 5px var(--red-dim), var(--shadow-sm);
-}
-input[type="range"]::-moz-range-thumb {
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--surface); border: 2px solid var(--red);
-  cursor: pointer; box-shadow: var(--shadow-sm);
-}
-
-.leverage-presets { display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
-.leverage-preset {
-  flex: 1; min-width: 40px; min-height: 36px;
-  border: 1px solid var(--border-2); border-radius: var(--radius-sm);
-  background: transparent; color: var(--ink-3);
-  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600;
-  cursor: pointer; transition: all var(--t-fast);
-  display: flex; align-items: center; justify-content: center;
-}
-.leverage-preset:hover, .leverage-preset.active {
-  background: var(--red-dim); border-color: var(--border-red); color: var(--red-bold);
-}
-
-/* ═══════════════════════════════════════════════════
-   ENCRYPTION / PRIVACY
-═══════════════════════════════════════════════════ */
-.enc-glow {
-  box-shadow: inset 0 0 20px rgba(192,57,43,0.04), 0 0 0 1px rgba(192,57,43,0.22), var(--shadow-sm);
-  animation: enc-pulse 3.5s ease-in-out infinite;
-}
-@keyframes enc-pulse {
-  0%,100% { box-shadow: inset 0 0 20px rgba(192,57,43,0.04), 0 0 0 1px rgba(192,57,43,0.22), var(--shadow-sm); }
-  50%      { box-shadow: inset 0 0 32px rgba(192,57,43,0.08), 0 0 0 1px rgba(231,76,60,0.35), var(--shadow-md); }
-}
-
-.mpc-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 12px 4px 8px;
-  background: var(--red-dim); border: 1px solid var(--border-red);
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono); font-size: 0.68rem;
-  font-weight: 600; letter-spacing: 0.08em;
-  color: var(--red-bold); text-transform: uppercase;
-}
-
-.live-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  flex-shrink: 0;
-  animation: live-ping 1.8s ease-out infinite;
-}
-@keyframes live-ping {
-  0%   { box-shadow: 0 0 0 0   rgba(192,57,43,0.30); opacity: 1; }
-  60%  { box-shadow: 0 0 0 6px transparent;           opacity: 0.7; }
-  100% { box-shadow: 0 0 0 0   transparent;           opacity: 1; }
-}
-
-.pnl-blur { filter: blur(5px); transition: filter var(--t-base); cursor: pointer; user-select: none; }
-.pnl-blur:hover { filter: none; }
-
-/* ═══════════════════════════════════════════════════
-   MARKET LIST TABS (horizontal scroll mobile)
-═══════════════════════════════════════════════════ */
-.market-tabs {
-  display: flex; overflow-x: auto; gap: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--border);
-  -webkit-overflow-scrolling: touch; scrollbar-width: none;
-}
-.market-tabs::-webkit-scrollbar { display: none; }
-.market-tab {
-  flex-shrink: 0; padding: 6px 14px; min-height: 36px;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600;
-  letter-spacing: 0.04em; color: var(--ink-3);
-  background: transparent; border: 1px solid transparent;
-  cursor: pointer; transition: all var(--t-fast); white-space: nowrap;
-}
-.market-tab:hover  { color: var(--red-bold); background: var(--red-dim); }
-.market-tab.active { color: var(--red-bold); background: var(--red-dim); border-color: var(--border-red); }
-
-/* ═══════════════════════════════════════════════════
-   VISUAL DECORATORS
-═══════════════════════════════════════════════════ */
-.grad-text {
-  background: linear-gradient(118deg, var(--ink) 0%, var(--red-bold) 50%, var(--red) 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
-
-.hero-bg {
-  background:
-    radial-gradient(ellipse 70% 50% at 50% -5%,  rgba(255,248,220,0.90) 0%, transparent 70%),
-    radial-gradient(ellipse 45% 35% at 85% 75%,  rgba(192,57,43,0.06)   0%, transparent 60%),
-    radial-gradient(ellipse 45% 35% at 15% 55%,  rgba(26,78,122,0.04)   0%, transparent 60%),
-    var(--bg);
-}
-
-.divider-warm {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cornsilk-mid) 30%, var(--cornsilk-mid) 70%, transparent);
-  opacity: 0.35;
-}
-
-.accent-bar { position: relative; }
-.accent-bar::after {
-  content: ''; position: absolute; bottom:0; left:0; right:0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--red-bold), var(--red), var(--red-bold), transparent);
-  opacity: 0.50;
-}
-
-.nav-active { color: var(--red-bold); position: relative; }
-.nav-active::after {
-  content: ''; position: absolute; bottom: -2px; left: 0; right: 0;
-  height: 2px; background: var(--red-bold); border-radius: 1px;
-}
-
-.stat-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-md); padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-xs);
-  transition: box-shadow var(--t-base), border-color var(--t-base);
-}
-.stat-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-red); }
-
-/* ═══════════════════════════════════════════════════
-   MATERIAL SYMBOLS
-═══════════════════════════════════════════════════ */
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;
-  user-select: none; vertical-align: middle; line-height: 1; color: inherit;
-}
-.icon-fill { font-variation-settings: 'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24; }
-.icon-sm   { font-size: 18px; font-variation-settings: 'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 20; }
-
-/* ═══════════════════════════════════════════════════
-   TOOLTIP
-═══════════════════════════════════════════════════ */
-[data-tooltip] { position: relative; cursor: help; }
-[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute; bottom: calc(100% + 8px); left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: var(--ink); color: var(--cornsilk-mid);
-  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.04em;
-  padding: 6px 12px; border-radius: var(--radius-sm);
-  white-space: normal; text-align: center; max-width: 240px;
-  pointer-events: none; opacity: 0; z-index: 999;
-  transition: opacity var(--t-fast), transform var(--t-fast);
-}
-[data-tooltip]:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* ═══════════════════════════════════════════════════
-   SKELETON
-═══════════════════════════════════════════════════ */
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
-}
-.skeleton {
-  background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: var(--radius-sm);
-}
-
-/* ═══════════════════════════════════════════════════
-   ANIMATIONS
-═══════════════════════════════════════════════════ */
-@keyframes slide-up {
-  from { transform: translateY(12px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-.animate-slide-up { animation: slide-up 0.22s cubic-bezier(0.4,0,0.2,1); }
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.animate-fade-in { animation: fade-in 0.3s ease-out; }
-
-/* ═══════════════════════════════════════════════════
-   ACCESSIBILITY
-═══════════════════════════════════════════════════ */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  function formatPrice(p: number): string {
+    if (!p) return "—";
+    if (p >= 10000)
+      return `$${p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (p >= 1) return `$${p.toFixed(2)}`;
+    return `$${p.toFixed(4)}`;
   }
-}
-@media (forced-colors: active) {
-  .enc-glow, .live-dot, .btn-long, .btn-short { forced-color-adjust: none; }
-}
-@media print {
-  .bottom-nav, .top-nav { display: none; }
-  body { background: white; color: black; }
+
+  function formatPnl(v: number): string {
+    return `${v >= 0 ? "+" : ""}$${Math.abs(v).toFixed(2)}`;
+  }
+
+  // ─── Atoms ──────────────────────────────────────────────────────────────────
+
+  /** WebSocket live/connecting badge */
+  const WsBadge = () => (
+    <div style={{
+      ...row({ gap: 6 }),
+      padding: "3px 10px", borderRadius: 3,
+      background: wsConnected ? "rgba(27,107,69,0.08)" : "rgba(201,150,58,0.10)",
+      border: `1px solid ${wsConnected ? T.greenBorder : T.goldBorder}`,
+    }}>
+      <span style={{
+        width: 5, height: 5, borderRadius: "50%", display: "inline-block",
+        background: wsConnected ? T.green : T.gold,
+        boxShadow: wsConnected ? `0 0 6px ${T.greenBright}` : `0 0 6px ${T.gold}`,
+      }} />
+      <span style={{
+        ...mono, fontSize: 9, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: 1,
+        color: wsConnected ? T.green : T.gold,
+      }}>
+        {wsConnected ? "Live" : "Connecting…"}
+      </span>
+    </div>
+  );
+
+  /** MPC encrypted shield badge */
+  const MpcBadge = () => (
+    <div style={{
+      ...row({ gap: 5 }),
+      padding: "3px 10px", borderRadius: 3,
+      background: T.redDim, border: `1px solid ${T.redBorder}`,
+      ...mono, fontSize: 8, fontWeight: 700,
+      textTransform: "uppercase", letterSpacing: 1, color: T.red,
+    }}>
+      <span className="material-symbols-outlined icon-fill" style={{ fontSize: 11 }}>shield</span>
+      MPC Secured
+    </div>
+  );
+
+  /** Price change pill */
+  const ChangePill = ({ change, size = 10 }: { change: number; size?: number }) => (
+    <span style={{
+      ...mono, fontSize: size, fontWeight: 700,
+      padding: "2px 8px", borderRadius: 2,
+      color: change >= 0 ? T.green : T.red,
+      background: change >= 0 ? T.greenDim : T.redDim,
+      border: `1px solid ${change >= 0 ? T.greenBorder : T.redBorder}`,
+    }}>
+      {change >= 0 ? "▲" : "▼"} {Math.abs(change).toFixed(2)}%
+    </span>
+  );
+
+  // ─── Mobile: Horizontal market strip ────────────────────────────────────────
+
+  const MarketStrip = () => (
+    <div style={{
+      display: "flex", overflowX: "auto",
+      background: T.bgPaper, borderBottom: `1px solid ${T.border}`,
+      scrollbarWidth: "none",
+    }}>
+      {Object.entries(markets).map(([sym, m]) => {
+        const sel = sym === selectedMarket;
+        return (
+          <button key={sym} onClick={() => handleSelect(sym)} style={{
+            flexShrink: 0, padding: "8px 16px", background: "none", border: "none",
+            borderBottom: sel ? `2px solid ${T.red}` : "2px solid transparent",
+            borderRight: `1px solid ${T.border}`,
+            cursor: "pointer", textAlign: "left",
+            background: sel ? T.redDim : "transparent",
+          }}>
+            <div style={{
+              ...mono, fontSize: 10, fontWeight: 700,
+              color: sel ? T.red : T.ink3,
+            }}>
+              {sym.replace("USDT", "")} <span style={{ fontWeight: 400, color: T.ink5 }}>/ USDT</span>
+            </div>
+            <div style={{
+              ...mono, fontSize: 9, marginTop: 2,
+              color: m.change >= 0 ? T.green : T.red,
+            }}>
+              {m.change >= 0 ? "+" : ""}{m.change.toFixed(2)}%
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // ─── Mobile: Price header ────────────────────────────────────────────────────
+
+  const PriceHeaderBar = () => (
+    <div style={{
+      ...row({ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }),
+      padding: "12px 16px", background: T.surface,
+      borderBottom: `1px solid ${T.border}`, flexShrink: 0,
+    }}>
+      <div>
+        <div style={{ ...mono, fontSize: 9, textTransform: "uppercase",
+          letterSpacing: 2, color: T.ink4, marginBottom: 3 }}>
+          {selectedMarket}
+        </div>
+        <div style={row({ gap: 10 })}>
+          <span style={{
+            ...mono, fontSize: 22, fontWeight: 700, color: T.ink,
+            letterSpacing: "-0.03em",
+          }}>
+            {formatPrice(active?.price ?? 0)}
+          </span>
+          {active && <ChangePill change={active.change} />}
+        </div>
+      </div>
+      <WsBadge />
+    </div>
+  );
+
+  // ─── Mobile: Stats bar ──────────────────────────────────────────────────────
+
+  const StatsBar = () => (
+    <div style={{
+      display: "grid", gridTemplateColumns: "repeat(4,1fr)",
+      background: T.bgDeep, borderBottom: `1px solid ${T.border}`,
+      padding: "7px 16px",
+    }}>
+      {active && [
+        { l: "High",    v: formatPrice(active.high24h) },
+        { l: "Low",     v: formatPrice(active.low24h) },
+        { l: "Volume",  v: active.volume24h },
+        { l: "Funding", v: `${active.fundingRate.toFixed(4)}%` },
+      ].map((s) => (
+        <div key={s.l}>
+          <div style={{ ...mono, fontSize: 8, textTransform: "uppercase",
+            letterSpacing: 1, color: T.ink4 }}>{s.l}</div>
+          <div style={{ ...mono, fontSize: 10, color: T.ink2, marginTop: 1 }}>{s.v}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // ─── Mobile: Tab bar ────────────────────────────────────────────────────────
+
+  const TABS: { id: MobileTab; label: string; count?: number }[] = [
+    { id: "order",     label: "Order" },
+    { id: "positions", label: "Positions", count: openPositions.length || undefined },
+    { id: "markets",   label: "Markets" },
+  ];
+
+  const MobileTabBar = () => (
+    <div style={{
+      display: "flex", background: T.bgPaper,
+      borderBottom: `1px solid ${T.border}`, flexShrink: 0,
+    }}>
+      {TABS.map((t) => {
+        const active = mobileTab === t.id;
+        return (
+          <button key={t.id} onClick={() => setMobileTab(t.id)} style={{
+            flex: 1, padding: "11px 4px", background: "none", border: "none",
+            borderBottom: active ? `2px solid ${T.red}` : "2px solid transparent",
+            ...mono, fontSize: 10, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 1, cursor: "pointer",
+            color: active ? T.red : T.ink4,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}>
+            {t.label}
+            {t.count != null && (
+              <span style={{
+                background: T.red, color: "#FFF8DC",
+                borderRadius: 10, fontSize: 8, fontWeight: 700,
+                padding: "1px 5px", lineHeight: 1.5,
+              }}>{t.count}</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // ─── Mobile: Order panel ────────────────────────────────────────────────────
+
+  const MobileOrderPanel = () => (
+    <div style={{ padding: "16px 16px 32px" }}>
+      {/* MPC badge */}
+      <div style={{ marginBottom: 14 }}><MpcBadge /></div>
+
+      {/* Direction toggle */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr",
+        border: `1px solid ${T.border}`, borderRadius: 6,
+        overflow: "hidden", marginBottom: 16,
+      }}>
+        {(["long", "short"] as const).map((dir) => (
+          <button key={dir} onClick={() => setDirection(dir)} style={{
+            padding: "10px 0", border: "none", cursor: "pointer",
+            ...mono, fontSize: 11, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 1,
+            background: direction === dir
+              ? (dir === "long" ? T.greenDim : T.redDim)
+              : "transparent",
+            color: direction === dir
+              ? (dir === "long" ? T.green : T.red)
+              : T.ink4,
+            borderBottom: direction === dir
+              ? `2px solid ${dir === "long" ? T.green : T.red}`
+              : "2px solid transparent",
+            transition: "all 150ms ease",
+          }}>
+            {dir === "long" ? "▲ Long" : "▼ Short"}
+          </button>
+        ))}
+      </div>
+
+      {/* Inputs */}
+      {[
+        { label: "Size (USDT)", placeholder: "0.00", suffix: "USDT" },
+        { label: "Leverage", placeholder: "1×", suffix: "×" },
+      ].map((field) => (
+        <div key={field.label} style={{ marginBottom: 14 }}>
+          <div style={{
+            ...mono, fontSize: 9, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 1,
+            color: T.ink4, marginBottom: 5,
+          }}>
+            {field.label}
+          </div>
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              placeholder={field.placeholder}
+              style={{
+                width: "100%",
+                background: T.bgPaper,
+                border: `1.5px solid ${T.border2}`,
+                borderRadius: 4,
+                padding: "11px 40px 11px 12px",
+                ...mono, fontSize: 15, color: T.ink,
+                outline: "none",
+              }}
+            />
+            <span style={{
+              position: "absolute", right: 12, top: "50%",
+              transform: "translateY(-50%)",
+              ...mono, fontSize: 10, fontWeight: 700, color: T.red,
+            }}>{field.suffix}</span>
+          </div>
+        </div>
+      ))}
+
+      {/* Leverage quick chips */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 18, flexWrap: "wrap" }}>
+        {["1×", "5×", "10×", "25×", "50×"].map((lev) => (
+          <button key={lev} style={{
+            padding: "5px 12px",
+            border: `1px solid ${T.border2}`,
+            borderRadius: 3, background: "transparent",
+            ...mono, fontSize: 9, fontWeight: 700, color: T.ink3,
+            cursor: "pointer",
+          }}>{lev}</button>
+        ))}
+      </div>
+
+      {/* Summary row */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr",
+        gap: 10, marginBottom: 18,
+        padding: "12px 14px",
+        background: T.bgDeep, borderRadius: 5,
+        border: `1px solid ${T.border}`,
+      }}>
+        {[
+          { l: "Entry", v: formatPrice(active?.price ?? 0) },
+          { l: "Est. Liq.", v: "—" },
+          { l: "Margin", v: "—" },
+          { l: "Notional", v: "—" },
+        ].map((s) => (
+          <div key={s.l}>
+            <div style={{ ...mono, fontSize: 8, textTransform: "uppercase",
+              letterSpacing: 1, color: T.ink4 }}>{s.l}</div>
+            <div style={{ ...mono, fontSize: 11, color: T.ink2, marginTop: 2 }}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <TradingPanel
+        market={selectedMarket}
+        currentPrice={active?.price ?? 0}
+        computationStatus={computationStatus}
+        lastTxSig={lastTxSig}
+        onOpenPosition={openPosition}
+      />
+    </div>
+  );
+
+  // ─── Mobile: Positions panel ─────────────────────────────────────────────────
+
+  const MobilePositionsPanel = () => (
+    <div style={{ padding: "12px 16px 32px" }}>
+      {/* PnL summary pill */}
+      {openPositions.length > 0 && (
+        <div style={{
+          ...row({ gap: 8, justifyContent: "space-between" }),
+          padding: "10px 14px", borderRadius: 6, marginBottom: 14,
+          background: totalPnl >= 0 ? T.greenDim : T.redDim,
+          border: `1px solid ${totalPnl >= 0 ? T.greenBorder : T.redBorder}`,
+        }}>
+          <span style={{ ...mono, fontSize: 9, textTransform: "uppercase",
+            letterSpacing: 1, color: T.ink4 }}>Total Unrealized PnL</span>
+          <span style={{
+            ...mono, fontSize: 13, fontWeight: 700,
+            color: totalPnl >= 0 ? T.green : T.red,
+          }}>{formatPnl(totalPnl)}</span>
+        </div>
+      )}
+
+      {openPositions.length === 0 ? (
+        <div style={{
+          ...col({ alignItems: "center" }), padding: "40px 0",
+          ...mono, fontSize: 11, color: T.ink5,
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 32, color: T.ink5, marginBottom: 8 }}>
+            candlestick_chart
+          </span>
+          No open positions
+        </div>
+      ) : (
+        <PositionTable
+          positions={positions}
+          currentPrices={prices}
+          onClose={closePosition}
+        />
+      )}
+    </div>
+  );
+
+  // ─── Mobile: Markets panel ────────────────────────────────────────────────────
+
+  const MobileMarketsPanel = () => (
+    <div>
+      {/* Header */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr auto",
+        padding: "7px 16px", background: T.bgDeep,
+        borderBottom: `1px solid ${T.border}`,
+      }}>
+        {["Pair", "Price", "24h"].map((h) => (
+          <div key={h} style={{
+            ...mono, fontSize: 8, textTransform: "uppercase",
+            letterSpacing: 1, color: T.ink4,
+            textAlign: h === "Pair" ? "left" : "right",
+          }}>{h}</div>
+        ))}
+      </div>
+
+      {Object.entries(markets).map(([sym, m]) => {
+        const sel = sym === selectedMarket;
+        return (
+          <button key={sym} onClick={() => handleSelect(sym)} style={{
+            width: "100%", display: "grid",
+            gridTemplateColumns: "1fr 1fr auto",
+            alignItems: "center", padding: "13px 16px",
+            background: sel ? T.redDim : "transparent",
+            border: "none", borderBottom: `1px solid ${T.border}`,
+            borderLeft: sel ? `3px solid ${T.red}` : "3px solid transparent",
+            cursor: "pointer", gap: 4,
+          }}>
+            <div style={{ textAlign: "left" }}>
+              <div style={{
+                ...mono, fontSize: 11, fontWeight: 700,
+                color: sel ? T.red : T.ink,
+              }}>
+                {sym.replace("USDT", "")}
+                <span style={{ fontWeight: 400, color: T.ink4, fontSize: 9 }}>/USDT</span>
+              </div>
+              <div style={{ ...mono, fontSize: 9, color: T.ink5, marginTop: 1 }}>
+                Vol {m.volume24h}
+              </div>
+            </div>
+            <div style={{
+              textAlign: "right",
+              ...mono, fontSize: 12, fontWeight: 700, color: T.ink,
+            }}>
+              {formatPrice(m.price)}
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <ChangePill change={m.change} size={9} />
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // ─── Mobile: 2-item bottom nav ────────────────────────────────────────────────
+
+  const BottomNav = () => (
+    <div style={{
+      display: "flex", background: T.ink, borderTop: `1px solid rgba(255,248,220,0.08)`,
+      flexShrink: 0,
+      paddingBottom: "env(safe-area-inset-bottom)",
+    }}>
+      {[
+        { page: "home" as AppPage,    icon: "home",       label: "Home" },
+        { page: "markets" as AppPage, icon: "bar_chart",  label: "Markets" },
+      ].map((item) => (
+        <button
+          key={item.page}
+          onClick={() => onNavigate(item.page)}
+          style={{
+            flex: 1, background: "none", border: "none",
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center",
+            padding: "10px 4px 8px", gap: 4, cursor: "pointer",
+            minHeight: 56,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 22, color: T.bg }}>
+            {item.icon}
+          </span>
+          <span style={{
+            ...mono, fontSize: 9, textTransform: "uppercase",
+            letterSpacing: 1, color: T.bg, opacity: 0.8,
+          }}>
+            {item.label}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+
+  // ─── Desktop: Market header bar ───────────────────────────────────────────────
+
+  const DesktopMarketHeader = () => (
+    <div style={{
+      height: 56, ...row({ justifyContent: "space-between" }),
+      padding: "0 20px", flexShrink: 0,
+      borderBottom: `1px solid ${T.border}`,
+      background: T.surface,
+    }}>
+      {/* Left: symbol + price + stats */}
+      <div style={row({ gap: 28 })}>
+        <div>
+          <div style={{ ...mono, fontSize: 9, textTransform: "uppercase",
+            letterSpacing: 2, color: T.ink4, marginBottom: 2 }}>
+            {selectedMarket}
+          </div>
+          <div style={row({ gap: 10 })}>
+            <span style={{
+              ...mono, fontSize: 18, fontWeight: 700, color: T.ink,
+              letterSpacing: "-0.02em",
+            }}>
+              {formatPrice(active?.price ?? 0)}
+            </span>
+            {active && <ChangePill change={active.change} />}
+          </div>
+        </div>
+
+        {active && (
+          <div style={row({ gap: 22 })}>
+            {[
+              { l: "24h High", v: formatPrice(active.high24h) },
+              { l: "24h Low",  v: formatPrice(active.low24h) },
+              { l: "Volume",   v: active.volume24h },
+              { l: "Funding",  v: `${active.fundingRate.toFixed(4)}%/hr` },
+            ].map((s) => (
+              <div key={s.l}>
+                <div style={{ ...mono, fontSize: 8, textTransform: "uppercase",
+                  letterSpacing: 1, color: T.ink4 }}>{s.l}</div>
+                <div style={{ ...mono, fontSize: 11, color: T.ink2, marginTop: 1 }}>{s.v}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Right: active positions + WS */}
+      <div style={row({ gap: 12 })}>
+        {openPositions.length > 0 && (
+          <div style={{
+            ...row({ gap: 6 }), padding: "4px 10px", borderRadius: 3,
+            background: totalPnl >= 0 ? T.greenDim : T.redDim,
+            border: `1px solid ${totalPnl >= 0 ? T.greenBorder : T.redBorder}`,
+          }}>
+            <span className="material-symbols-outlined icon-fill"
+              style={{ fontSize: 12, color: totalPnl >= 0 ? T.green : T.red }}>
+              trending_up
+            </span>
+            <span style={{ ...mono, fontSize: 10 }}>
+              <span style={{ color: totalPnl >= 0 ? T.green : T.red, fontWeight: 700 }}>
+                {formatPnl(totalPnl)}
+              </span>
+              <span style={{ color: T.ink4 }}> · {openPositions.length} open</span>
+            </span>
+          </div>
+        )}
+        <WsBadge />
+      </div>
+    </div>
+  );
+
+  // ─── Desktop: Order sidebar header ────────────────────────────────────────────
+
+  const OrderSidebarHeader = () => (
+    <div style={{
+      padding: "12px 16px",
+      borderBottom: `1px solid ${T.border}`,
+      ...row({ justifyContent: "space-between" }), flexShrink: 0,
+      background: T.bgPaper,
+    }}>
+      <div style={{ ...row({ gap: 8 }) }}>
+        {(["long", "short"] as const).map((dir) => (
+          <button key={dir} onClick={() => setDirection(dir)} style={{
+            padding: "5px 14px", border: "none", borderRadius: 3, cursor: "pointer",
+            ...mono, fontSize: 10, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 1,
+            background: direction === dir
+              ? (dir === "long" ? T.greenDim : T.redDim)
+              : "transparent",
+            color: direction === dir
+              ? (dir === "long" ? T.green : T.red)
+              : T.ink4,
+            border: `1px solid ${direction === dir
+              ? (dir === "long" ? T.greenBorder : T.redBorder)
+              : T.border}`,
+            transition: "all 150ms",
+          }}>
+            {dir === "long" ? "▲ Long" : "▼ Short"}
+          </button>
+        ))}
+      </div>
+      <MpcBadge />
+    </div>
+  );
+
+  // ─── Render ────────────────────────────────────────────────────────────────────
+
+  return (
+    <div style={{
+      height: "100dvh", display: "flex", flexDirection: "column",
+      overflow: "hidden", background: T.bg, color: T.ink,
+      fontFamily: "'IBM Plex Mono', monospace",
+    }}>
+
+      {/* Desktop top nav */}
+      <div className="hidden md:block">
+        <Layout activePage="trade" onNavigate={onNavigate} />
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          MOBILE LAYOUT
+          ════════════════════════════════════════════════════════════════════ */}
+      <div className="flex flex-col flex-1 overflow-hidden md:hidden" style={{ minHeight: 0 }}>
+
+        {/* Top bar */}
+        <div style={{
+          ...row({ justifyContent: "space-between" }),
+          padding: "0 16px", height: 46,
+          background: T.ink, flexShrink: 0,
+        }}>
+          {/* Wordmark */}
+          <span style={{
+            ...serif, fontSize: 18, fontWeight: 600,
+            letterSpacing: 3, color: T.bg,
+            fontStyle: "italic",
+          }}>
+            Arcium
+          </span>
+
+          <div style={row({ gap: 8 })}>
+            {openPositions.length > 0 && (
+              <div style={{
+                ...row({ gap: 5 }), padding: "3px 8px", borderRadius: 3,
+                background: "rgba(255,248,220,0.10)",
+                border: "1px solid rgba(255,248,220,0.20)",
+              }}>
+                <span className="material-symbols-outlined icon-fill"
+                  style={{ fontSize: 11, color: T.bg }}>shield</span>
+                <span style={{ ...mono, fontSize: 9, color: T.bg, opacity: 0.9 }}>
+                  {openPositions.length} active
+                </span>
+              </div>
+            )}
+            <WsBadge />
+          </div>
+        </div>
+
+        {/* Market strip */}
+        <MarketStrip />
+
+        {/* Price header */}
+        <PriceHeaderBar />
+
+        {/* Stats row */}
+        <StatsBar />
+
+        {/* Chart */}
+        <div style={{ height: 155, flexShrink: 0, overflow: "hidden",
+          borderBottom: `1px solid ${T.border}` }}>
+          <PriceChart
+            symbol={selectedMarket}
+            price={active?.price ?? 0}
+            change={active?.change ?? 0}
+            candles={candles}
+            unrealizedPnl={openPositions.length > 0 ? totalPnl : undefined}
+            isLive={wsConnected && (active?.isLive ?? false)}
+          />
+        </div>
+
+        {/* Tab bar */}
+        <MobileTabBar />
+
+        {/* Tab panels */}
+        <div style={{ flex: 1, overflowY: "auto", background: T.bg, minHeight: 0 }}>
+          {mobileTab === "order"     && <MobileOrderPanel />}
+          {mobileTab === "positions" && <MobilePositionsPanel />}
+          {mobileTab === "markets"   && <MobileMarketsPanel />}
+        </div>
+
+        {/* Bottom nav — Home + Markets only */}
+        <BottomNav />
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          DESKTOP LAYOUT
+          ════════════════════════════════════════════════════════════════════ */}
+      <main
+        className="hidden md:flex flex-1 overflow-hidden mt-14"
+        style={{ gap: 1, background: T.border }}
+      >
+        {/* Left: market list */}
+        <div style={{ background: T.surface, flexShrink: 0, overflowY: "auto" }}>
+          <MarketList
+            markets={markets}
+            selected={selectedMarket}
+            onSelect={handleSelect}
+            wsConnected={wsConnected}
+          />
+        </div>
+
+        {/* Center: chart + positions */}
+        <section style={{
+          flex: 1, display: "flex", flexDirection: "column",
+          minWidth: 0, overflow: "hidden", background: T.bg,
+        }}>
+          <DesktopMarketHeader />
+
+          <PriceChart
+            symbol={selectedMarket}
+            price={active?.price ?? 0}
+            change={active?.change ?? 0}
+            candles={candles}
+            unrealizedPnl={openPositions.length > 0 ? totalPnl : undefined}
+            isLive={wsConnected && (active?.isLive ?? false)}
+          />
+
+          <PositionTable
+            positions={positions}
+            currentPrices={prices}
+            onClose={closePosition}
+          />
+        </section>
+
+        {/* Right: order panel */}
+        <aside style={{
+          width: 288, display: "flex", flexDirection: "column",
+          height: "100%", flexShrink: 0,
+          background: T.surface, borderLeft: `1px solid ${T.border}`,
+        }}>
+          <OrderSidebarHeader />
+
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+            {/* Inputs */}
+            {[
+              { label: "Size (USDT)", placeholder: "0.00", suffix: "USDT" },
+              { label: "Leverage",    placeholder: "1×",   suffix: "×" },
+            ].map((field) => (
+              <div key={field.label} style={{ marginBottom: 14 }}>
+                <div style={{
+                  ...mono, fontSize: 9, fontWeight: 700,
+                  textTransform: "uppercase", letterSpacing: 1,
+                  color: T.ink4, marginBottom: 5,
+                }}>
+                  {field.label}
+                </div>
+                <div style={{ position: "relative" }}>
+                  <input type="text" placeholder={field.placeholder} style={{
+                    width: "100%", background: T.bgPaper,
+                    border: `1.5px solid ${T.border2}`, borderRadius: 4,
+                    padding: "10px 40px 10px 12px",
+                    ...mono, fontSize: 15, color: T.ink, outline: "none",
+                  }} />
+                  <span style={{
+                    position: "absolute", right: 10, top: "50%",
+                    transform: "translateY(-50%)",
+                    ...mono, fontSize: 9, fontWeight: 700, color: T.red,
+                  }}>{field.suffix}</span>
+                </div>
+              </div>
+            ))}
+
+            {/* Leverage chips */}
+            <div style={{ display: "flex", gap: 5, marginBottom: 16, flexWrap: "wrap" }}>
+              {["1×", "5×", "10×", "25×", "50×"].map((lev) => (
+                <button key={lev} style={{
+                  padding: "4px 10px", border: `1px solid ${T.border2}`,
+                  borderRadius: 3, background: "transparent",
+                  ...mono, fontSize: 9, fontWeight: 700, color: T.ink3,
+                  cursor: "pointer",
+                }}>{lev}</button>
+              ))}
+            </div>
+
+            {/* Summary */}
+            <div style={{
+              display: "grid", gridTemplateColumns: "1fr 1fr",
+              gap: 8, marginBottom: 16,
+              padding: "10px 12px", background: T.bgDeep,
+              borderRadius: 4, border: `1px solid ${T.border}`,
+            }}>
+              {[
+                { l: "Entry",    v: formatPrice(active?.price ?? 0) },
+                { l: "Est. Liq", v: "—" },
+                { l: "Margin",   v: "—" },
+                { l: "Notional", v: "—" },
+              ].map((s) => (
+                <div key={s.l}>
+                  <div style={{ ...mono, fontSize: 8, textTransform: "uppercase",
+                    letterSpacing: 1, color: T.ink4 }}>{s.l}</div>
+                  <div style={{ ...mono, fontSize: 11, color: T.ink2, marginTop: 1 }}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+
+            <TradingPanel
+              market={selectedMarket}
+              currentPrice={active?.price ?? 0}
+              computationStatus={computationStatus}
+              lastTxSig={lastTxSig}
+              onOpenPosition={openPosition}
+            />
+          </div>
+        </aside>
+      </main>
+    </div>
+  );
 }
