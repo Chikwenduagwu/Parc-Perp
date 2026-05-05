@@ -236,7 +236,7 @@ export default function HomePage({ onLaunchApp, onSelectMarket }: Props) {
                 style={{ border: "1px solid var(--color-border)" }}
               >
                 <div className="font-display text-4xl font-black mb-3" style={{ color: "rgba(167,139,250,0.2)" }}>{step.step}</div>
-                <h3 className="font-display text-base font-black text-white mb-2">{step.title}</h3>
+                <h3 className="font-display text-base font-black text-black mb-2">{step.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-2)" }}>{step.desc}</p>
               </div>
             ))}
@@ -334,7 +334,7 @@ export default function HomePage({ onLaunchApp, onSelectMarket }: Props) {
       {/* ── Privacy Features ─────────────────────────────────────────────── */}
       <section className="py-24 px-6" style={{ borderTop: "1px solid var(--color-border)", background: "rgba(0,0,0,0.2)" }}>
         <div className="max-w-[1100px] mx-auto">
-          <h2 className="font-display text-3xl font-black text-white text-center mb-12">Privacy Guarantees</h2>
+          <h2 className="font-display text-3xl font-black text-black text-center mb-12">Privacy Guarantees</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {PRIVACY_FEATURES.map((f) => (
               <div
@@ -363,7 +363,7 @@ export default function HomePage({ onLaunchApp, onSelectMarket }: Props) {
             Trade Without<br />
             <span className="grad-text">Fear of Exposure</span>
           </h2>
-          <p className="mb-10 text-lg" style={{ color: "var(--color-text-2)" }}>
+          <p className="mb-10 text-lg" style={{ color: black; }}>
             Your positions, your secrets. Powered by Arcium MPC.
           </p>
           <button
