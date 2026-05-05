@@ -83,7 +83,7 @@ export default function HomePage({ onLaunchApp, onSelectMarket }: Props) {
               </span>
             </div>
 
-            <h1 className="font-display text-[60px] leading-[0.95] font-black text-white tracking-tight">
+            <h1 className="font-display text-[60px] leading-[0.95] font-black text-black tracking-tight">
               Trade Perps.<br />
               <span className="grad-text">Stay Invisible.</span>
             </h1>
@@ -127,7 +127,7 @@ export default function HomePage({ onLaunchApp, onSelectMarket }: Props) {
                 { l: "MPC Threshold",       v: "2-of-3" },
               ].map((m) => (
                 <div key={m.l}>
-                  <div className="font-display text-2xl font-black text-white">{m.v}</div>
+                  <div className="font-display text-2xl font-black text-black">{m.v}</div>
                   <div className="font-mono text-[9px] uppercase tracking-wider" style={{ color: "var(--color-text-3)" }}>{m.l}</div>
                 </div>
               ))}
