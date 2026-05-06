@@ -27,44 +27,44 @@ type MobileTab = "order" | "positions" | "markets";
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
   // Backgrounds — warm cornsilk paper
-  bg:          "#FFF8DC",
-  bgPaper:     "#FDF5CC",
-  bgDeep:      "#F5EDB0",
-  surface:     "#FFFEF7",
-  surfaceCard: "#FFFCF0",
+  bg:          "#000000",
+bgPaper:     "#0A0A0A",
+bgDeep:      "#111111",
+surface:     "#121212",
+surfaceCard: "#1A1A1A",
 
-  // Ink
-  ink:         "#0D0D0D",
-  ink2:        "#1A1A1A",
-  ink3:        "#3D3830",
-  ink4:        "#7A7264",
-  ink5:        "#B8B09E",
+// Ink (text)
+ink:         "#FFFFFF",
+ink2:        "#E6E6E6",
+ink3:        "#BFBFBF",
+ink4:        "#8C8C8C",
+ink5:        "#595959",
 
-  // Red — primary accent
-  red:         "#B71C1C",
-  redBright:   "#D32F2F",
-  redDeep:     "#7F0000",
-  redDim:      "rgba(183,28,28,0.08)",
-  redTint:     "rgba(183,28,28,0.15)",
-  redBorder:   "rgba(183,28,28,0.25)",
-  redGlow:     "rgba(211,47,47,0.20)",
+// Accent (kept minimal — grayscale instead of red)
+red:         "#FFFFFF",
+redBright:   "#F2F2F2",
+redDeep:     "#BFBFBF",
+redDim:      "rgba(255,255,255,0.06)",
+redTint:     "rgba(255,255,255,0.10)",
+redBorder:   "rgba(255,255,255,0.18)",
+redGlow:     "rgba(255,255,255,0.15)",
 
-  // Cornsilk tones — decorative
-  gold:        "#C9963A",
-  goldDim:     "rgba(201,150,58,0.12)",
-  goldBorder:  "rgba(201,150,58,0.30)",
+// Decorative (converted to neutral gray tones)
+gold:        "#CCCCCC",
+goldDim:     "rgba(204,204,204,0.10)",
+goldBorder:  "rgba(204,204,204,0.25)",
 
-  // Status
-  green:       "#1B6B45",
-  greenBright: "#2E9E67",
-  greenDim:    "rgba(27,107,69,0.10)",
-  greenBorder: "rgba(27,107,69,0.25)",
+// Status (subtle, still readable)
+green:       "#4CAF50",
+greenBright: "#66BB6A",
+greenDim:    "rgba(76,175,80,0.10)",
+greenBorder: "rgba(76,175,80,0.25)",
 
-  // Borders on cornsilk
-  border:      "rgba(13,13,13,0.10)",
-  border2:     "rgba(13,13,13,0.16)",
-  border3:     "rgba(13,13,13,0.24)",
-};
+// Borders
+border:      "rgba(255,255,255,0.08)",
+border2:     "rgba(255,255,255,0.14)",
+border3:     "rgba(255,255,255,0.22)",
+}
 
 // ─── Tiny style helpers ───────────────────────────────────────────────────────
 const mono: React.CSSProperties = { fontFamily: "'IBM Plex Mono', monospace" };
