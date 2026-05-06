@@ -1,865 +1,780 @@
-/**
- * TradingPage.tsx — Polished trading terminal
- * Theme: Cornsilk background · Crimson red · Ink black
- * Mobile: TopBar → MarketStrip → PriceHeader → StatsBar → Chart → Tabs[Order|Positions|Markets] → BottomNav(Home|Markets)
- * Desktop: [MarketList | Chart + Positions | TradingPanel]
- */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-import { useEffect, useState } from "react";
-import Layout from "../components/Layout";
-import MarketList from "../components/MarketList";
-import TradingPanel from "../components/TradingPanel";
-import PositionTable from "../components/PositionTable";
-import PriceChart from "../components/PriceChart";
-import { usePositions } from "../hooks/usePositions";
-import { useMarketData } from "../hooks/useMarketData";
-import type { AppPage } from "../App";
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS — Full dark monochrome
+═══════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Backgrounds ── */
+  --bg:            #000000;
+  --bg-paper:      #0A0A0A;
+  --bg-deep:       #111111;
+  --surface:       #121212;
+  --surface-card:  #1A1A1A;
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-interface Props {
-  market: string;
-  onNavigate: (p: AppPage) => void;
-  onMarketChange: (m: string) => void;
+  /* ── Ink (text) — all pass contrast on dark bg ── */
+  --ink:           #FFFFFF;   /* 21:1 on #000 */
+  --ink-2:         #E6E6E6;   /* 17.5:1 */
+  --ink-3:         #BFBFBF;   /* 11.8:1 */
+  --ink-4:         #8C8C8C;   /*  5.9:1 — labels/secondary */
+  --ink-5:         #595959;   /*  2.5:1 — decorative only */
+
+  /* ── Accent — grayscale white tones ── */
+  --red:           #FFFFFF;
+  --red-bright:    #F2F2F2;
+  --red-deep:      #BFBFBF;
+  --red-dim:       rgba(255,255,255,0.06);
+  --red-tint:      rgba(255,255,255,0.10);
+  --red-border:    rgba(255,255,255,0.18);
+  --red-glow:      rgba(255,255,255,0.15);
+  --red-bold:      #FFFFFF;
+
+  /* ── Decorative ── */
+  --gold:          #CCCCCC;
+  --gold-dim:      rgba(204,204,204,0.10);
+  --gold-border:   rgba(204,204,204,0.25);
+
+  /* ── Status — green kept for profit signals ── */
+  --green:         #4CAF50;
+  --green-bright:  #66BB6A;
+  --green-bold:    #4CAF50;
+  --green-dim:     rgba(76,175,80,0.10);
+  --green-tint:    rgba(76,175,80,0.15);
+  --green-glow:    rgba(76,175,80,0.20);
+  --border-green:  rgba(76,175,80,0.25);
+
+  /* ── Borders ── */
+  --border:        rgba(255,255,255,0.08);
+  --border-2:      rgba(255,255,255,0.14);
+  --border-3:      rgba(255,255,255,0.22);
+  --border-red:    rgba(255,255,255,0.18);
+
+  /* ── Fonts ── */
+  --font-display:  'Cormorant Garamond', Georgia, serif;
+  --font-body:     'Lora', Georgia, serif;
+  --font-mono:     'IBM Plex Mono', 'Courier New', monospace;
+
+  /* ── Shadows ── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.40);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.50), 0 1px 2px rgba(0,0,0,0.30);
+  --shadow-md: 0 4px 18px rgba(0,0,0,0.60), 0 2px 4px rgba(0,0,0,0.40);
+  --shadow-lg: 0 8px 36px rgba(0,0,0,0.70), 0 4px 8px rgba(0,0,0,0.50);
+
+  /* ── Radii ── */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-pill: 100px;
+
+  /* ── Spacing ── */
+  --space-1:  4px;  --space-2:  8px;  --space-3: 12px;
+  --space-4: 16px;  --space-5: 20px;  --space-6: 24px;
+  --space-8: 32px;  --space-10:40px;  --space-12:48px;
+
+  /* ── Touch / Layout ── */
+  --touch-min:    44px;
+  --nav-h:        56px;
+  --bottom-nav-h: 60px;
+
+  /* ── Transitions ── */
+  --t-fast:   150ms cubic-bezier(0.4,0,0.2,1);
+  --t-base:   220ms cubic-bezier(0.4,0,0.2,1);
+  --t-slow:   380ms cubic-bezier(0.4,0,0.2,1);
+  --t-spring: 320ms cubic-bezier(0.34,1.56,0.64,1);
+
+  /* ── Legacy tokens — keeps old components working ── */
+  --color-bg:        var(--bg);
+  --color-surface:   var(--surface);
+  --color-surface-2: var(--surface-card);
+  --color-border:    var(--border);
+  --color-border-2:  var(--border-2);
+  --color-text:      var(--ink-2);
+  --color-text-2:    var(--ink-3);
+  --color-text-3:    var(--ink-4);
+  --color-green:     var(--green);
+  --color-red:       #E05C5C;
+  --color-blue:      #60A5FA;
+  --color-purple:    #A78BFA;
 }
 
-type MobileTab = "order" | "positions" | "markets";
+/* ═══════════════════════════════════════════════════════════════
+   BASE RESET
+═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+html, body {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  overflow-x: hidden;
+}
+body { padding-bottom: env(safe-area-inset-bottom); }
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const T = {
-  // Backgrounds — warm cornsilk paper
-  bg:          "#000000",
-bgPaper:     "#0A0A0A",
-bgDeep:      "#111111",
-surface:     "#121212",
-surfaceCard: "#1A1A1A",
+::selection { background: rgba(255,255,255,0.15); color: var(--ink); }
+:focus-visible { outline: 1px solid var(--border-2); outline-offset: 3px; border-radius: 3px; }
 
-// Ink (text)
-ink:         "#FFFFFF",
-ink2:        "#E6E6E6",
-ink3:        "#BFBFBF",
-ink4:        "#8C8C8C",
-ink5:        "#595959",
+/* ═══════════════════════════════════════════════════════════════
+   TYPOGRAPHY
+═══════════════════════════════════════════════════════════════ */
+h1,h2,h3,h4,h5,h6 {
+  font-family: var(--font-display);
+  font-feature-settings: 'kern' 1,'liga' 1,'dlig' 1;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  color: var(--ink);
+}
+h1 { font-size: clamp(1.75rem, 5vw,   4rem);    font-weight: 600; }
+h2 { font-size: clamp(1.4rem,  3.5vw, 2.6rem);  font-weight: 500; }
+h3 { font-size: clamp(1.1rem,  2.5vw, 1.8rem);  font-weight: 500; }
+h4 { font-size: clamp(0.95rem, 2vw,   1.25rem); font-weight: 500; }
 
-// Accent (kept minimal — grayscale instead of red)
-red:         "#FFFFFF",
-redBright:   "#F2F2F2",
-redDeep:     "#BFBFBF",
-redDim:      "rgba(255,255,255,0.06)",
-redTint:     "rgba(255,255,255,0.10)",
-redBorder:   "rgba(255,255,255,0.18)",
-redGlow:     "rgba(255,255,255,0.15)",
+p, li, label, td, th { font-family: var(--font-body); color: var(--ink-3); }
 
-// Decorative (converted to neutral gray tones)
-gold:        "#CCCCCC",
-goldDim:     "rgba(204,204,204,0.10)",
-goldBorder:  "rgba(204,204,204,0.25)",
-
-// Status (subtle, still readable)
-green:       "#4CAF50",
-greenBright: "#66BB6A",
-greenDim:    "rgba(76,175,80,0.10)",
-greenBorder: "rgba(76,175,80,0.25)",
-
-// Borders
-border:      "rgba(255,255,255,0.08)",
-border2:     "rgba(255,255,255,0.14)",
-border3:     "rgba(255,255,255,0.22)",
+.font-display { font-family: var(--font-display) !important; }
+.font-body    { font-family: var(--font-body)    !important; }
+.font-mono    { font-family: var(--font-mono)    !important; }
+.font-mono, code, kbd, pre {
+  font-family: var(--font-mono);
+  font-feature-settings: 'zero' 1,'tnum' 1;
+  letter-spacing: 0;
 }
 
-// ─── Tiny style helpers ───────────────────────────────────────────────────────
-const mono: React.CSSProperties = { fontFamily: "'IBM Plex Mono', monospace" };
-const serif: React.CSSProperties = { fontFamily: "'Cormorant Garamond', Georgia, serif" };
-const row = (extra?: React.CSSProperties): React.CSSProperties => ({
-  display: "flex", alignItems: "center", ...extra,
-});
-const col = (extra?: React.CSSProperties): React.CSSProperties => ({
-  display: "flex", flexDirection: "column", ...extra,
-});
+.text-ink       { color: var(--ink)  !important; }
+.text-secondary { color: var(--ink-3); }
+.text-muted     { color: var(--ink-4); }
+.text-green     { color: var(--green); }
+.text-white     { color: var(--ink)  !important; }
 
-export default function TradingPage({
-  market: initialMarket,
-  onNavigate,
-  onMarketChange,
-}: Props) {
-  const [selectedMarket, setSelectedMarket] = useState(initialMarket);
-  const [mobileTab, setMobileTab]           = useState<MobileTab>("order");
-  const [direction, setDirection]           = useState<"long" | "short">("long");
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════════════════ */
+.scroll-hide::-webkit-scrollbar { display: none; }
+.scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scroll-styled::-webkit-scrollbar       { width: 3px; height: 3px; }
+.scroll-styled::-webkit-scrollbar-track { background: transparent; }
+.scroll-styled::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+.scroll-styled::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
 
-  const { markets, wsConnected, getCandles } = useMarketData();
-  const {
-    positions, computationStatus, lastTxSig,
-    openPosition, closePosition, updatePnl,
-  } = usePositions();
+/* ═══════════════════════════════════════════════════════════════
+   GLASS / PANELS
+═══════════════════════════════════════════════════════════════ */
+.glass {
+  background: rgba(26,26,26,0.85);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.glass-bright {
+  background: rgba(30,30,30,0.97);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--border-2);
+  box-shadow: var(--shadow-md);
+}
+.stat-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--t-base), border-color var(--t-base);
+}
+.stat-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-2); }
 
-  const active        = markets[selectedMarket];
-  const candles       = getCandles(selectedMarket);
-  const prices        = Object.fromEntries(
-    Object.entries(markets).map(([s, m]) => [s, m.price])
-  );
-  const openPositions = positions.filter((p) => p.status === "open");
-  const totalPnl      = openPositions.reduce((s, p) => s + p.unrealizedPnl, 0);
+/* ═══════════════════════════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════════════════════════ */
+.app-shell { display: flex; flex-direction: column; min-height: 100dvh; }
 
-  useEffect(() => { updatePnl(prices); }, [JSON.stringify(prices)]);
+.top-nav {
+  position: sticky; top: 0; z-index: 90;
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 var(--space-4); gap: var(--space-3);
+  height: var(--nav-h);
+  padding-top: env(safe-area-inset-top);
+  height: calc(var(--nav-h) + env(safe-area-inset-top));
+}
 
-  function handleSelect(sym: string) {
-    setSelectedMarket(sym);
-    onMarketChange(sym);
-    setMobileTab("order");
+.main-content {
+  flex: 1;
+  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+}
+@media (min-width: 1024px) { .main-content { padding-bottom: 0; } }
+
+/* ─── Bottom Nav ─── */
+.bottom-nav {
+  display: flex;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+  background: rgba(10,10,10,0.98);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border-top: 1px solid var(--border-2);
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.60);
+  height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-nav-item {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; min-height: var(--touch-min);
+  font-family: var(--font-mono); font-size: 0.6rem; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-5); cursor: pointer; border: none; background: none;
+  transition: color var(--t-fast), background var(--t-fast);
+  position: relative; padding: 0;
+}
+.bottom-nav-item .material-symbols-outlined { font-size: 22px; }
+.bottom-nav-item.active { color: var(--ink); }
+.bottom-nav-item:hover:not(.active) { color: var(--ink-3); background: rgba(255,255,255,0.03); }
+@media (min-width: 1024px) { .bottom-nav { display: none; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   TRADE ROOT — layout controller
+═══════════════════════════════════════════════════════════════ */
+.trade-root {
+  min-height: 100dvh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Desktop layout */
+.trade-desktop-layout { display: none; }
+@media (min-width: 1024px) {
+  .trade-desktop-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr 300px;
+    flex: 1;
+    height: calc(100dvh - var(--nav-h));
+    margin-top: var(--nav-h);
+    overflow: hidden;
+    border-top: 1px solid var(--border);
   }
+  .trade-mobile-layout { display: none !important; }
+}
 
-  function formatPrice(p: number): string {
-    if (!p) return "—";
-    if (p >= 10000)
-      return `$${p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    if (p >= 1) return `$${p.toFixed(2)}`;
-    return `$${p.toFixed(4)}`;
-  }
+/* Mobile layout */
+.trade-mobile-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-top: var(--nav-h);
+  height: calc(100dvh - var(--nav-h));
+  overflow: hidden;
+  position: relative;
+}
+@media (min-width: 1024px) { .trade-mobile-layout { display: none; } }
 
-  function formatPnl(v: number): string {
-    return `${v >= 0 ? "+" : ""}$${Math.abs(v).toFixed(2)}`;
-  }
+/* ─── Market Header ─── */
+.trade-market-header {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0; flex-wrap: wrap; min-height: 56px;
+}
 
-  // ─── Atoms ──────────────────────────────────────────────────────────────────
+.trade-symbol-btn {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer;
+  padding: 4px 2px; min-height: var(--touch-min);
+  border-radius: var(--radius-sm);
+  transition: background var(--t-fast);
+}
+.trade-symbol-btn:hover { background: rgba(255,255,255,0.04); }
 
-  /** WebSocket live/connecting badge */
-  const WsBadge = () => (
-    <div style={{
-      ...row({ gap: 6 }),
-      padding: "3px 10px", borderRadius: 3,
-      background: wsConnected ? "rgba(27,107,69,0.08)" : "rgba(201,150,58,0.10)",
-      border: `1px solid ${wsConnected ? T.greenBorder : T.goldBorder}`,
-    }}>
-      <span style={{
-        width: 5, height: 5, borderRadius: "50%", display: "inline-block",
-        background: wsConnected ? T.green : T.gold,
-        boxShadow: wsConnected ? `0 0 6px ${T.greenBright}` : `0 0 6px ${T.gold}`,
-      }} />
-      <span style={{
-        ...mono, fontSize: 9, fontWeight: 700,
-        textTransform: "uppercase", letterSpacing: 1,
-        color: wsConnected ? T.green : T.gold,
-      }}>
-        {wsConnected ? "Live" : "Connecting…"}
-      </span>
-    </div>
-  );
+.trade-symbol-pair {
+  font-family: var(--font-mono); font-size: 0.875rem; font-weight: 700;
+  letter-spacing: 0.06em; color: var(--ink); text-transform: uppercase;
+}
 
-  /** MPC encrypted shield badge */
-  const MpcBadge = () => (
-    <div style={{
-      ...row({ gap: 5 }),
-      padding: "3px 10px", borderRadius: 3,
-      background: T.redDim, border: `1px solid ${T.redBorder}`,
-      ...mono, fontSize: 8, fontWeight: 700,
-      textTransform: "uppercase", letterSpacing: 1, color: T.red,
-    }}>
-      <span className="material-symbols-outlined icon-fill" style={{ fontSize: 11 }}>shield</span>
-      MPC Secured
-    </div>
-  );
+.trade-price-block { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 
-  /** Price change pill */
-  const ChangePill = ({ change, size = 10 }: { change: number; size?: number }) => (
-    <span style={{
-      ...mono, fontSize: size, fontWeight: 700,
-      padding: "2px 8px", borderRadius: 2,
-      color: change >= 0 ? T.green : T.red,
-      background: change >= 0 ? T.greenDim : T.redDim,
-      border: `1px solid ${change >= 0 ? T.greenBorder : T.redBorder}`,
-    }}>
-      {change >= 0 ? "▲" : "▼"} {Math.abs(change).toFixed(2)}%
-    </span>
-  );
+.trade-price-value {
+  font-family: var(--font-mono); font-size: clamp(1.1rem, 3vw, 1.5rem);
+  font-weight: 700; color: var(--ink); font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.02em;
+}
 
-  // ─── Mobile: Horizontal market strip ────────────────────────────────────────
+.trade-price-change {
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700;
+  padding: 3px 8px; border-radius: var(--radius-pill); letter-spacing: 0.03em;
+}
 
-  const MarketStrip = () => (
-    <div style={{
-      display: "flex", overflowX: "auto",
-      background: T.bgPaper, borderBottom: `1px solid ${T.border}`,
-      scrollbarWidth: "none",
-    }}>
-      {Object.entries(markets).map(([sym, m]) => {
-        const sel = sym === selectedMarket;
-        return (
-          <button key={sym} onClick={() => handleSelect(sym)} style={{
-            flexShrink: 0, padding: "8px 16px", background: "none", border: "none",
-            borderBottom: sel ? `2px solid ${T.red}` : "2px solid transparent",
-            borderRight: `1px solid ${T.border}`,
-            cursor: "pointer", textAlign: "left",
-            background: sel ? T.redDim : "transparent",
-          }}>
-            <div style={{
-              ...mono, fontSize: 10, fontWeight: 700,
-              color: sel ? T.red : T.ink3,
-            }}>
-              {sym.replace("USDT", "")} <span style={{ fontWeight: 400, color: T.ink5 }}>/ USDT</span>
-            </div>
-            <div style={{
-              ...mono, fontSize: 9, marginTop: 2,
-              color: m.change >= 0 ? T.green : T.red,
-            }}>
-              {m.change >= 0 ? "+" : ""}{m.change.toFixed(2)}%
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
+.trade-stats-row { display: none; align-items: center; gap: var(--space-5); flex: 1; }
+@media (min-width: 640px) { .trade-stats-row { display: flex; } }
 
-  // ─── Mobile: Price header ────────────────────────────────────────────────────
+.trade-stat-item  { display: flex; flex-direction: column; gap: 1px; }
+.trade-stat-label { font-family: var(--font-mono); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-5); }
+.trade-stat-value { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; color: var(--ink-3); font-feature-settings: 'tnum' 1; }
 
-  const PriceHeaderBar = () => (
-    <div style={{
-      ...row({ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }),
-      padding: "12px 16px", background: T.surface,
-      borderBottom: `1px solid ${T.border}`, flexShrink: 0,
-    }}>
-      <div>
-        <div style={{ ...mono, fontSize: 9, textTransform: "uppercase",
-          letterSpacing: 2, color: T.ink4, marginBottom: 3 }}>
-          {selectedMarket}
-        </div>
-        <div style={row({ gap: 10 })}>
-          <span style={{
-            ...mono, fontSize: 22, fontWeight: 700, color: T.ink,
-            letterSpacing: "-0.03em",
-          }}>
-            {formatPrice(active?.price ?? 0)}
-          </span>
-          {active && <ChangePill change={active.change} />}
-        </div>
-      </div>
-      <WsBadge />
-    </div>
-  );
+.trade-header-right { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; flex-shrink: 0; }
 
-  // ─── Mobile: Stats bar ──────────────────────────────────────────────────────
+.trade-positions-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; background: var(--green-dim);
+  border: 1px solid var(--border-green); border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 0.7rem;
+}
+.trade-positions-count { font-weight: 700; color: var(--green); }
+.trade-positions-label { color: var(--ink-4); }
 
-  const StatsBar = () => (
-    <div style={{
-      display: "grid", gridTemplateColumns: "repeat(4,1fr)",
-      background: T.bgDeep, borderBottom: `1px solid ${T.border}`,
-      padding: "7px 16px",
-    }}>
-      {active && [
-        { l: "High",    v: formatPrice(active.high24h) },
-        { l: "Low",     v: formatPrice(active.low24h) },
-        { l: "Volume",  v: active.volume24h },
-        { l: "Funding", v: `${active.fundingRate.toFixed(4)}%` },
-      ].map((s) => (
-        <div key={s.l}>
-          <div style={{ ...mono, fontSize: 8, textTransform: "uppercase",
-            letterSpacing: 1, color: T.ink4 }}>{s.l}</div>
-          <div style={{ ...mono, fontSize: 10, color: T.ink2, marginTop: 1 }}>{s.v}</div>
-        </div>
-      ))}
-    </div>
-  );
+.trade-ws-badge {
+  display: flex; align-items: center; gap: 5px; padding: 5px 10px;
+  border: 1px solid; border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.05em;
+}
 
-  // ─── Mobile: Tab bar ────────────────────────────────────────────────────────
+/* ─── Desktop columns ─── */
+.trade-market-sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--bg-paper);
+  overflow-y: auto; height: 100%;
+}
+.trade-center-col {
+  display: flex; flex-direction: column;
+  overflow: hidden; background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+.trade-chart-wrap { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+.trade-positions-wrap {
+  border-top: 1px solid var(--border);
+  overflow-x: auto; overflow-y: auto;
+  max-height: 220px; flex-shrink: 0;
+  background: var(--bg-paper);
+}
+.trade-order-sidebar {
+  display: flex; flex-direction: column;
+  overflow-y: auto; background: var(--surface); height: 100%;
+}
+.trade-order-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-deep); flex-shrink: 0;
+}
+.trade-order-title {
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink);
+  display: flex; align-items: center; gap: var(--space-2);
+}
 
-  const TABS: { id: MobileTab; label: string; count?: number }[] = [
-    { id: "order",     label: "Order" },
-    { id: "positions", label: "Positions", count: openPositions.length || undefined },
-    { id: "markets",   label: "Markets" },
-  ];
+/* ─── Mobile panels ─── */
+.trade-mobile-panels {
+  flex: 1; overflow: hidden; position: relative;
+  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+}
+.trade-mobile-panel {
+  display: none; flex-direction: column;
+  height: 100%; overflow: hidden;
+  background: var(--bg); position: absolute; inset: 0;
+}
+.trade-mobile-panel.active { display: flex; animation: fade-in 0.18s ease-out; }
 
-  const MobileTabBar = () => (
-    <div style={{
-      display: "flex", background: T.bgPaper,
-      borderBottom: `1px solid ${T.border}`, flexShrink: 0,
-    }}>
-      {TABS.map((t) => {
-        const active = mobileTab === t.id;
-        return (
-          <button key={t.id} onClick={() => setMobileTab(t.id)} style={{
-            flex: 1, padding: "11px 4px", background: "none", border: "none",
-            borderBottom: active ? `2px solid ${T.red}` : "2px solid transparent",
-            ...mono, fontSize: 10, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: 1, cursor: "pointer",
-            color: active ? T.red : T.ink4,
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          }}>
-            {t.label}
-            {t.count != null && (
-              <span style={{
-                background: T.red, color: "#FFF8DC",
-                borderRadius: 10, fontSize: 8, fontWeight: 700,
-                padding: "1px 5px", lineHeight: 1.5,
-              }}>{t.count}</span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
+.trade-mobile-pnl-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-3); padding: var(--space-3) var(--space-4);
+  background: var(--surface); border-top: 1px solid var(--border);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.trade-mobile-pnl-label { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-5); }
+.trade-mobile-pnl-value { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; font-feature-settings: 'tnum' 1; letter-spacing: -0.01em; }
 
-  // ─── Mobile: Order panel ────────────────────────────────────────────────────
+/* ─── Market tabs ─── */
+.market-tabs { display: flex; overflow-x: auto; gap: var(--space-1); padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--border); -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.market-tabs::-webkit-scrollbar { display: none; }
+.market-tab { flex-shrink: 0; padding: 6px 14px; min-height: 36px; border-radius: var(--radius-pill); font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-4); background: transparent; border: 1px solid transparent; cursor: pointer; transition: all var(--t-fast); white-space: nowrap; }
+.market-tab:hover  { color: var(--ink); background: var(--red-dim); }
+.market-tab.active { color: var(--ink); background: var(--red-dim); border-color: var(--border-2); }
 
-  const MobileOrderPanel = () => (
-    <div style={{ padding: "16px 16px 32px" }}>
-      {/* MPC badge */}
-      <div style={{ marginBottom: 14 }}><MpcBadge /></div>
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--space-2); min-height: var(--touch-min);
+  padding: 10px var(--space-5); font-family: var(--font-body);
+  font-weight: 500; font-size: 0.9375rem; letter-spacing: 0.02em;
+  border-radius: var(--radius-sm); border: none; cursor: pointer;
+  text-decoration: none; user-select: none; white-space: nowrap;
+  transition: background var(--t-fast), border-color var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast), color var(--t-fast);
+}
+.btn:active        { transform: scale(0.98); }
+.btn:disabled      { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+.btn:focus-visible { outline: 1px solid var(--border-2); outline-offset: 3px; }
 
-      {/* Direction toggle */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr",
-        border: `1px solid ${T.border}`, borderRadius: 6,
-        overflow: "hidden", marginBottom: 16,
-      }}>
-        {(["long", "short"] as const).map((dir) => (
-          <button key={dir} onClick={() => setDirection(dir)} style={{
-            padding: "10px 0", border: "none", cursor: "pointer",
-            ...mono, fontSize: 11, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: 1,
-            background: direction === dir
-              ? (dir === "long" ? T.greenDim : T.redDim)
-              : "transparent",
-            color: direction === dir
-              ? (dir === "long" ? T.green : T.red)
-              : T.ink4,
-            borderBottom: direction === dir
-              ? `2px solid ${dir === "long" ? T.green : T.red}`
-              : "2px solid transparent",
-            transition: "all 150ms ease",
-          }}>
-            {dir === "long" ? "▲ Long" : "▼ Short"}
-          </button>
-        ))}
-      </div>
+.btn-primary { background: var(--ink); color: #000000; box-shadow: var(--shadow-sm); }
+.btn-primary:hover { background: var(--ink-2); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 
-      {/* Inputs */}
-      {[
-        { label: "Size (USDT)", placeholder: "0.00", suffix: "USDT" },
-        { label: "Leverage", placeholder: "1×", suffix: "×" },
-      ].map((field) => (
-        <div key={field.label} style={{ marginBottom: 14 }}>
-          <div style={{
-            ...mono, fontSize: 9, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: 1,
-            color: T.ink4, marginBottom: 5,
-          }}>
-            {field.label}
-          </div>
-          <div style={{ position: "relative" }}>
-            <input
-              type="text"
-              placeholder={field.placeholder}
-              style={{
-                width: "100%",
-                background: T.bgPaper,
-                border: `1.5px solid ${T.border2}`,
-                borderRadius: 4,
-                padding: "11px 40px 11px 12px",
-                ...mono, fontSize: 15, color: T.ink,
-                outline: "none",
-              }}
-            />
-            <span style={{
-              position: "absolute", right: 12, top: "50%",
-              transform: "translateY(-50%)",
-              ...mono, fontSize: 10, fontWeight: 700, color: T.red,
-            }}>{field.suffix}</span>
-          </div>
-        </div>
-      ))}
+.btn-secondary { background: transparent; color: var(--ink-2); border: 1px solid var(--border-2); }
+.btn-secondary:hover { background: var(--red-dim); border-color: var(--border-3); color: var(--ink); }
 
-      {/* Leverage quick chips */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 18, flexWrap: "wrap" }}>
-        {["1×", "5×", "10×", "25×", "50×"].map((lev) => (
-          <button key={lev} style={{
-            padding: "5px 12px",
-            border: `1px solid ${T.border2}`,
-            borderRadius: 3, background: "transparent",
-            ...mono, fontSize: 9, fontWeight: 700, color: T.ink3,
-            cursor: "pointer",
-          }}>{lev}</button>
-        ))}
-      </div>
+.btn-ghost { background: transparent; color: var(--ink-4); min-height: var(--touch-min); }
+.btn-ghost:hover { background: var(--red-dim); color: var(--ink-2); }
 
-      {/* Summary row */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr",
-        gap: 10, marginBottom: 18,
-        padding: "12px 14px",
-        background: T.bgDeep, borderRadius: 5,
-        border: `1px solid ${T.border}`,
-      }}>
-        {[
-          { l: "Entry", v: formatPrice(active?.price ?? 0) },
-          { l: "Est. Liq.", v: "—" },
-          { l: "Margin", v: "—" },
-          { l: "Notional", v: "—" },
-        ].map((s) => (
-          <div key={s.l}>
-            <div style={{ ...mono, fontSize: 8, textTransform: "uppercase",
-              letterSpacing: 1, color: T.ink4 }}>{s.l}</div>
-            <div style={{ ...mono, fontSize: 11, color: T.ink2, marginTop: 2 }}>{s.v}</div>
-          </div>
-        ))}
-      </div>
+.btn-long {
+  width: 100%; min-height: 52px;
+  background: var(--green-dim); color: var(--green);
+  border: 1px solid var(--border-green);
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.875rem;
+  letter-spacing: 0.08em; text-transform: uppercase; border-radius: var(--radius-md);
+}
+.btn-long:hover { background: var(--green-tint); border-color: var(--green); box-shadow: 0 0 16px var(--green-glow); transform: translateY(-1px); }
 
-      {/* CTA */}
-      <TradingPanel
-        market={selectedMarket}
-        currentPrice={active?.price ?? 0}
-        computationStatus={computationStatus}
-        lastTxSig={lastTxSig}
-        onOpenPosition={openPosition}
-      />
-    </div>
-  );
+.btn-short {
+  width: 100%; min-height: 52px;
+  background: rgba(224,92,92,0.08); color: #E05C5C;
+  border: 1px solid rgba(224,92,92,0.22);
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.875rem;
+  letter-spacing: 0.08em; text-transform: uppercase; border-radius: var(--radius-md);
+}
+.btn-short:hover { background: rgba(224,92,92,0.14); border-color: #E05C5C; box-shadow: 0 0 16px rgba(224,92,92,0.18); transform: translateY(-1px); }
+.btn-long:active, .btn-short:active { transform: scale(0.98); }
 
-  // ─── Mobile: Positions panel ─────────────────────────────────────────────────
+.trade-action-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); padding: var(--space-4); }
 
-  const MobilePositionsPanel = () => (
-    <div style={{ padding: "12px 16px 32px" }}>
-      {/* PnL summary pill */}
-      {openPositions.length > 0 && (
-        <div style={{
-          ...row({ gap: 8, justifyContent: "space-between" }),
-          padding: "10px 14px", borderRadius: 6, marginBottom: 14,
-          background: totalPnl >= 0 ? T.greenDim : T.redDim,
-          border: `1px solid ${totalPnl >= 0 ? T.greenBorder : T.redBorder}`,
-        }}>
-          <span style={{ ...mono, fontSize: 9, textTransform: "uppercase",
-            letterSpacing: 1, color: T.ink4 }}>Total Unrealized PnL</span>
-          <span style={{
-            ...mono, fontSize: 13, fontWeight: 700,
-            color: totalPnl >= 0 ? T.green : T.red,
-          }}>{formatPnl(totalPnl)}</span>
-        </div>
-      )}
+/* ─── Side tabs ─── */
+.side-tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--border); background: var(--bg-deep); }
+.side-tab { padding: var(--space-3) var(--space-4); min-height: var(--touch-min); font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-align: center; cursor: pointer; border: none; background: transparent; color: var(--ink-5); border-bottom: 2px solid transparent; transition: all var(--t-fast); }
+.side-tab.long.active  { color: var(--green); background: var(--green-dim); border-bottom-color: var(--green); }
+.side-tab.short.active { color: #E05C5C; background: rgba(224,92,92,0.08); border-bottom-color: #E05C5C; }
+.side-tab:hover:not(.active) { color: var(--ink-2); background: rgba(255,255,255,0.03); }
 
-      {openPositions.length === 0 ? (
-        <div style={{
-          ...col({ alignItems: "center" }), padding: "40px 0",
-          ...mono, fontSize: 11, color: T.ink5,
-        }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 32, color: T.ink5, marginBottom: 8 }}>
-            candlestick_chart
-          </span>
-          No open positions
-        </div>
-      ) : (
-        <PositionTable
-          positions={positions}
-          currentPrices={prices}
-          onClose={closePosition}
-        />
-      )}
-    </div>
-  );
+/* ═══════════════════════════════════════════════════════════════
+   TRADING INPUT — 16px prevents iOS zoom
+═══════════════════════════════════════════════════════════════ */
+.t-input {
+  background: var(--bg-deep); border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm); color: var(--ink);
+  padding: 12px var(--space-3); width: 100%; min-height: var(--touch-min);
+  font-family: var(--font-mono); font-size: 1rem; font-weight: 400;
+  font-feature-settings: 'tnum' 1; outline: none;
+  caret-color: var(--ink-3);
+  -webkit-appearance: none; appearance: none;
+  transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
+}
+.t-input:focus { background: var(--surface); border-color: var(--border-3); box-shadow: 0 0 0 3px rgba(255,255,255,0.05); }
+.t-input::placeholder { color: var(--ink-5); font-weight: 300; }
+.t-input:disabled     { opacity: 0.35; cursor: not-allowed; }
 
-  // ─── Mobile: Markets panel ────────────────────────────────────────────────────
+.input-group  { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+.input-label  { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); }
+.input-wrap   { position: relative; display: flex; align-items: center; }
+.input-suffix { position: absolute; right: var(--space-3); font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--ink-3); pointer-events: none; letter-spacing: 0.05em; }
 
-  const MobileMarketsPanel = () => (
-    <div>
-      {/* Header */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr auto",
-        padding: "7px 16px", background: T.bgDeep,
-        borderBottom: `1px solid ${T.border}`,
-      }}>
-        {["Pair", "Price", "24h"].map((h) => (
-          <div key={h} style={{
-            ...mono, fontSize: 8, textTransform: "uppercase",
-            letterSpacing: 1, color: T.ink4,
-            textAlign: h === "Pair" ? "left" : "right",
-          }}>{h}</div>
-        ))}
-      </div>
+/* ═══════════════════════════════════════════════════════════════
+   CHIPS
+═══════════════════════════════════════════════════════════════ */
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--radius-pill); font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.4; }
+.chip-green { background: var(--green-dim); border: 1px solid var(--border-green); color: var(--green); }
+.chip-red   { background: rgba(224,92,92,0.08); border: 1px solid rgba(224,92,92,0.22); color: #E05C5C; }
+.chip-white { background: var(--red-dim); border: 1px solid var(--border); color: var(--ink-3); }
 
-      {Object.entries(markets).map(([sym, m]) => {
-        const sel = sym === selectedMarket;
-        return (
-          <button key={sym} onClick={() => handleSelect(sym)} style={{
-            width: "100%", display: "grid",
-            gridTemplateColumns: "1fr 1fr auto",
-            alignItems: "center", padding: "13px 16px",
-            background: sel ? T.redDim : "transparent",
-            border: "none", borderBottom: `1px solid ${T.border}`,
-            borderLeft: sel ? `3px solid ${T.red}` : "3px solid transparent",
-            cursor: "pointer", gap: 4,
-          }}>
-            <div style={{ textAlign: "left" }}>
-              <div style={{
-                ...mono, fontSize: 11, fontWeight: 700,
-                color: sel ? T.red : T.ink,
-              }}>
-                {sym.replace("USDT", "")}
-                <span style={{ fontWeight: 400, color: T.ink4, fontSize: 9 }}>/USDT</span>
-              </div>
-              <div style={{ ...mono, fontSize: 9, color: T.ink5, marginTop: 1 }}>
-                Vol {m.volume24h}
-              </div>
-            </div>
-            <div style={{
-              textAlign: "right",
-              ...mono, fontSize: 12, fontWeight: 700, color: T.ink,
-            }}>
-              {formatPrice(m.price)}
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <ChangePill change={m.change} size={9} />
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
+/* ═══════════════════════════════════════════════════════════════
+   ORDER BOOK
+═══════════════════════════════════════════════════════════════ */
+.orderbook { font-family: var(--font-mono); font-size: 0.75rem; font-feature-settings: 'tnum' 1; }
+.orderbook-header { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); }
+.orderbook-header span { font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-5); font-family: var(--font-mono); }
+.orderbook-header span:not(:first-child) { text-align: right; }
+.orderbook-row { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 4px var(--space-3); position: relative; min-height: 28px; align-items: center; cursor: default; transition: background var(--t-fast); }
+.orderbook-row:hover { background: rgba(255,255,255,0.03); }
+.orderbook-row::before { content: ''; position: absolute; top:0; bottom:0; right:0; width: var(--depth, 0%); pointer-events: none; border-radius: 2px 0 0 2px; }
+.orderbook-ask::before { background: rgba(224,92,92,0.08); }
+.orderbook-bid::before { background: var(--green-dim); }
+.orderbook-ask .price-col { color: #E05C5C; font-weight: 600; }
+.orderbook-bid .price-col { color: var(--green); font-weight: 600; }
+.size-col  { color: var(--ink-4); text-align: right; }
+.total-col { color: var(--ink-5); text-align: right; }
+.orderbook-spread { padding: var(--space-2) var(--space-3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: var(--space-2); font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-5); }
+.spread-value { color: var(--ink-3); font-weight: 600; }
 
-  // ─── Mobile: 2-item bottom nav ────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════
+   POSITIONS TABLE
+═══════════════════════════════════════════════════════════════ */
+.positions-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-xs); }
+.positions-table { width: 100%; min-width: 560px; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.8125rem; font-feature-settings: 'tnum' 1; }
+.positions-table th { padding: var(--space-3) var(--space-4); text-align: left; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-5); border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--bg-deep); font-family: var(--font-mono); }
+.positions-table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); color: var(--ink-3); white-space: nowrap; }
+.tr-hover:hover td { background: rgba(255,255,255,0.02); transition: background var(--t-fast); }
 
-  const BottomNav = () => (
-    <div style={{
-      display: "flex", background: T.ink, borderTop: `1px solid rgba(255,248,220,0.08)`,
-      flexShrink: 0,
-      paddingBottom: "env(safe-area-inset-bottom)",
-    }}>
-      {[
-        { page: "home" as AppPage,    icon: "home",       label: "Home" },
-        { page: "markets" as AppPage, icon: "bar_chart",  label: "Markets" },
-      ].map((item) => (
-        <button
-          key={item.page}
-          onClick={() => onNavigate(item.page)}
-          style={{
-            flex: 1, background: "none", border: "none",
-            display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center",
-            padding: "10px 4px 8px", gap: 4, cursor: "pointer",
-            minHeight: 56,
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 22, color: T.bg }}>
-            {item.icon}
-          </span>
-          <span style={{
-            ...mono, fontSize: 9, textTransform: "uppercase",
-            letterSpacing: 1, color: T.bg, opacity: 0.8,
-          }}>
-            {item.label}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
+.position-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-xs); }
+.position-card-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.8125rem; }
+.position-card-row:last-child { border-bottom: none; }
+.position-card-key   { color: var(--ink-5); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.position-card-value { color: var(--ink-3); font-weight: 600; }
 
-  // ─── Desktop: Market header bar ───────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════
+   LEVERAGE SLIDER
+═══════════════════════════════════════════════════════════════ */
+input[type="range"] { -webkit-appearance: none; appearance: none; height: 3px; width: 100%; background: var(--border-2); border-radius: 2px; outline: none; cursor: pointer; transition: background var(--t-fast); }
+input[type="range"]:hover { background: var(--border-3); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--surface-card); border: 1.5px solid var(--border-3); box-shadow: var(--shadow-sm); cursor: pointer; transition: transform var(--t-spring), box-shadow var(--t-fast); }
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); box-shadow: 0 0 0 4px rgba(255,255,255,0.08), var(--shadow-sm); }
+input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--surface-card); border: 1.5px solid var(--border-3); cursor: pointer; }
 
-  const DesktopMarketHeader = () => (
-    <div style={{
-      height: 56, ...row({ justifyContent: "space-between" }),
-      padding: "0 20px", flexShrink: 0,
-      borderBottom: `1px solid ${T.border}`,
-      background: T.surface,
-    }}>
-      {/* Left: symbol + price + stats */}
-      <div style={row({ gap: 28 })}>
-        <div>
-          <div style={{ ...mono, fontSize: 9, textTransform: "uppercase",
-            letterSpacing: 2, color: T.ink4, marginBottom: 2 }}>
-            {selectedMarket}
-          </div>
-          <div style={row({ gap: 10 })}>
-            <span style={{
-              ...mono, fontSize: 18, fontWeight: 700, color: T.ink,
-              letterSpacing: "-0.02em",
-            }}>
-              {formatPrice(active?.price ?? 0)}
-            </span>
-            {active && <ChangePill change={active.change} />}
-          </div>
-        </div>
+.leverage-presets { display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
+.leverage-preset { flex: 1; min-width: 40px; min-height: 36px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--ink-5); font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all var(--t-fast); display: flex; align-items: center; justify-content: center; }
+.leverage-preset:hover, .leverage-preset.active { background: var(--red-dim); border-color: var(--border-2); color: var(--ink-2); }
 
-        {active && (
-          <div style={row({ gap: 22 })}>
-            {[
-              { l: "24h High", v: formatPrice(active.high24h) },
-              { l: "24h Low",  v: formatPrice(active.low24h) },
-              { l: "Volume",   v: active.volume24h },
-              { l: "Funding",  v: `${active.fundingRate.toFixed(4)}%/hr` },
-            ].map((s) => (
-              <div key={s.l}>
-                <div style={{ ...mono, fontSize: 8, textTransform: "uppercase",
-                  letterSpacing: 1, color: T.ink4 }}>{s.l}</div>
-                <div style={{ ...mono, fontSize: 11, color: T.ink2, marginTop: 1 }}>{s.v}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+/* ═══════════════════════════════════════════════════════════════
+   ENCRYPTION / PRIVACY
+═══════════════════════════════════════════════════════════════ */
+.enc-glow {
+  box-shadow: inset 0 0 24px rgba(255,255,255,0.02), 0 0 0 1px rgba(255,255,255,0.10), var(--shadow-sm);
+  animation: enc-pulse 3.5s ease-in-out infinite;
+}
+@keyframes enc-pulse {
+  0%,100% { box-shadow: inset 0 0 24px rgba(255,255,255,0.02), 0 0 0 1px rgba(255,255,255,0.10), var(--shadow-sm); }
+  50%      { box-shadow: inset 0 0 36px rgba(255,255,255,0.04), 0 0 0 1px rgba(255,255,255,0.20), var(--shadow-md); }
+}
 
-      {/* Right: active positions + WS */}
-      <div style={row({ gap: 12 })}>
-        {openPositions.length > 0 && (
-          <div style={{
-            ...row({ gap: 6 }), padding: "4px 10px", borderRadius: 3,
-            background: totalPnl >= 0 ? T.greenDim : T.redDim,
-            border: `1px solid ${totalPnl >= 0 ? T.greenBorder : T.redBorder}`,
-          }}>
-            <span className="material-symbols-outlined icon-fill"
-              style={{ fontSize: 12, color: totalPnl >= 0 ? T.green : T.red }}>
-              trending_up
-            </span>
-            <span style={{ ...mono, fontSize: 10 }}>
-              <span style={{ color: totalPnl >= 0 ? T.green : T.red, fontWeight: 700 }}>
-                {formatPnl(totalPnl)}
-              </span>
-              <span style={{ color: T.ink4 }}> · {openPositions.length} open</span>
-            </span>
-          </div>
-        )}
-        <WsBadge />
-      </div>
-    </div>
-  );
+.mpc-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px 4px 8px;
+  background: var(--red-dim); border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.08em; color: var(--ink-3); text-transform: uppercase;
+}
 
-  // ─── Desktop: Order sidebar header ────────────────────────────────────────────
+.live-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; animation: live-ping 1.8s ease-out infinite; }
+@keyframes live-ping {
+  0%   { box-shadow: 0 0 0 0   rgba(76,175,80,0.40); opacity: 1; }
+  60%  { box-shadow: 0 0 0 6px transparent;           opacity: 0.7; }
+  100% { box-shadow: 0 0 0 0   transparent;           opacity: 1; }
+}
 
-  const OrderSidebarHeader = () => (
-    <div style={{
-      padding: "12px 16px",
-      borderBottom: `1px solid ${T.border}`,
-      ...row({ justifyContent: "space-between" }), flexShrink: 0,
-      background: T.bgPaper,
-    }}>
-      <div style={{ ...row({ gap: 8 }) }}>
-        {(["long", "short"] as const).map((dir) => (
-          <button key={dir} onClick={() => setDirection(dir)} style={{
-            padding: "5px 14px", border: "none", borderRadius: 3, cursor: "pointer",
-            ...mono, fontSize: 10, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: 1,
-            background: direction === dir
-              ? (dir === "long" ? T.greenDim : T.redDim)
-              : "transparent",
-            color: direction === dir
-              ? (dir === "long" ? T.green : T.red)
-              : T.ink4,
-            border: `1px solid ${direction === dir
-              ? (dir === "long" ? T.greenBorder : T.redBorder)
-              : T.border}`,
-            transition: "all 150ms",
-          }}>
-            {dir === "long" ? "▲ Long" : "▼ Short"}
-          </button>
-        ))}
-      </div>
-      <MpcBadge />
-    </div>
-  );
+.pnl-blur { filter: blur(5px); transition: filter var(--t-base); cursor: pointer; user-select: none; }
+.pnl-blur:hover { filter: none; }
 
-  // ─── Render ────────────────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════
+   GRAD TEXT
+═══════════════════════════════════════════════════════════════ */
+.grad-text {
+  background: linear-gradient(118deg, var(--ink) 0%, var(--ink-3) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
 
-  return (
-    <div style={{
-      height: "100dvh", display: "flex", flexDirection: "column",
-      overflow: "hidden", background: T.bg, color: T.ink,
-      fontFamily: "'IBM Plex Mono', monospace",
-    }}>
+/* ═══════════════════════════════════════════════════════════════
+   DECORATORS
+═══════════════════════════════════════════════════════════════ */
+.hero-bg {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -5%,  rgba(255,255,255,0.04) 0%, transparent 70%),
+    var(--bg);
+}
+.divider-warm { height: 1px; background: linear-gradient(90deg, transparent, var(--border-2) 30%, var(--border-2) 70%, transparent); opacity: 0.6; }
+.accent-bar { position: relative; }
+.accent-bar::after { content: ''; position: absolute; bottom:0; left:0; right:0; height: 1px; background: linear-gradient(90deg, transparent, var(--border-3), transparent); }
+.nav-active { color: var(--ink) !important; position: relative; }
+.nav-active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 1px; background: var(--ink); border-radius: 1px; }
 
-      {/* Desktop top nav */}
-      <div className="hidden md:block">
-        <Layout activePage="trade" onNavigate={onNavigate} />
-      </div>
+/* ═══════════════════════════════════════════════════════════════
+   MATERIAL SYMBOLS
+═══════════════════════════════════════════════════════════════ */
+.material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24; user-select: none; vertical-align: middle; line-height: 1; color: inherit; }
+.icon-fill { font-variation-settings: 'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24; }
+.icon-sm   { font-size: 18px; font-variation-settings: 'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 20; }
 
-      {/* ════════════════════════════════════════════════════════════════════
-          MOBILE LAYOUT
-          ════════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col flex-1 overflow-hidden md:hidden" style={{ minHeight: 0 }}>
+/* ═══════════════════════════════════════════════════════════════
+   TOOLTIP
+═══════════════════════════════════════════════════════════════ */
+[data-tooltip] { position: relative; cursor: help; }
+[data-tooltip]::after { content: attr(data-tooltip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(4px); background: var(--surface-card); color: var(--ink-3); border: 1px solid var(--border-2); font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.04em; padding: 6px 12px; border-radius: var(--radius-sm); white-space: normal; text-align: center; max-width: 240px; pointer-events: none; opacity: 0; z-index: 999; transition: opacity var(--t-fast), transform var(--t-fast); box-shadow: var(--shadow-md); }
+[data-tooltip]:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        {/* Top bar */}
-        <div style={{
-          ...row({ justifyContent: "space-between" }),
-          padding: "0 16px", height: 46,
-          background: T.ink, flexShrink: 0,
-        }}>
-          {/* Wordmark */}
-          <span style={{
-            ...serif, fontSize: 18, fontWeight: 600,
-            letterSpacing: 3, color: T.bg,
-            fontStyle: "italic",
-          }}>
-            Arcium
-          </span>
+/* ═══════════════════════════════════════════════════════════════
+   SKELETON
+═══════════════════════════════════════════════════════════════ */
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+.skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface-card) 50%, var(--surface) 75%); background-size: 800px 100%; animation: shimmer 1.4s ease-in-out infinite; border-radius: var(--radius-sm); }
 
-          <div style={row({ gap: 8 })}>
-            {openPositions.length > 0 && (
-              <div style={{
-                ...row({ gap: 5 }), padding: "3px 8px", borderRadius: 3,
-                background: "rgba(255,248,220,0.10)",
-                border: "1px solid rgba(255,248,220,0.20)",
-              }}>
-                <span className="material-symbols-outlined icon-fill"
-                  style={{ fontSize: 11, color: T.bg }}>shield</span>
-                <span style={{ ...mono, fontSize: 9, color: T.bg, opacity: 0.9 }}>
-                  {openPositions.length} active
-                </span>
-              </div>
-            )}
-            <WsBadge />
-          </div>
-        </div>
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════════════════════ */
+@keyframes slide-up { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.animate-slide-up { animation: slide-up 0.22s cubic-bezier(0.4,0,0.2,1); }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.animate-fade-in { animation: fade-in 0.3s ease-out; }
 
-        {/* Market strip */}
-        <MarketStrip />
+/* ═══════════════════════════════════════════════════════════════
+   HOMEPAGE CLASSES
+═══════════════════════════════════════════════════════════════ */
+.hp-root { min-height: 100dvh; background: var(--bg); color: var(--ink-2); overflow-x: hidden; }
 
-        {/* Price header */}
-        <PriceHeaderBar />
+/* Hero */
+.hp-hero { position: relative; height: 100dvh; min-height: 600px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000; }
+.hp-hero-canvas { position: absolute; inset: 0; z-index: 0; }
+.hp-hero-vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse 60% 70% at 50% 50%, transparent 30%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.92) 100%), linear-gradient(to bottom, rgba(0,0,0,0.80) 0%, transparent 20%, transparent 75%, rgba(0,0,0,0.90) 100%); }
+.hp-hero-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; text-align: center; gap: clamp(16px,3vh,28px); padding: 0 var(--space-6); max-width: 860px; width: 100%; }
+.hp-hero-content > * { animation: hp-rise 0.7s cubic-bezier(0.4,0,0.2,1) both; }
+.hp-hero-content > *:nth-child(1) { animation-delay: 0.10s; }
+.hp-hero-content > *:nth-child(2) { animation-delay: 0.22s; }
+.hp-hero-content > *:nth-child(3) { animation-delay: 0.34s; }
+.hp-hero-content > *:nth-child(4) { animation-delay: 0.46s; }
+.hp-hero-content > *:nth-child(5) { animation-delay: 0.58s; }
+@keyframes hp-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 
-        {/* Stats row */}
-        <StatsBar />
+.hp-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px 6px 10px; border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-pill); background: rgba(255,255,255,0.05); backdrop-filter: blur(8px); font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.65); }
+.hp-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; box-shadow: 0 0 6px var(--green-glow); animation: live-ping 2s ease-out infinite; }
 
-        {/* Chart */}
-        <div style={{ height: 155, flexShrink: 0, overflow: "hidden",
-          borderBottom: `1px solid ${T.border}` }}>
-          <PriceChart
-            symbol={selectedMarket}
-            price={active?.price ?? 0}
-            change={active?.change ?? 0}
-            candles={candles}
-            unrealizedPnl={openPositions.length > 0 ? totalPnl : undefined}
-            isLive={wsConnected && (active?.isLive ?? false)}
-          />
-        </div>
+.hp-headline { display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: var(--font-display); font-size: clamp(3rem, 10vw, 8.5rem); line-height: 0.94; letter-spacing: -0.02em; font-weight: 700; user-select: none; }
+.hp-headline-line  { display: block; }
+.hp-headline-white { color: #ffffff; }
+.hp-headline-outline { color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,0.70); text-shadow: 0 0 80px rgba(255,255,255,0.08); }
 
-        {/* Tab bar */}
-        <MobileTabBar />
+.hp-sub { font-family: var(--font-body); font-size: clamp(0.9375rem, 2vw, 1.125rem); line-height: 1.65; color: rgba(255,255,255,0.55); max-width: 480px; }
+.hp-sub-accent { color: #ffffff; font-weight: 600; }
 
-        {/* Tab panels */}
-        <div style={{ flex: 1, overflowY: "auto", background: T.bg, minHeight: 0 }}>
-          {mobileTab === "order"     && <MobileOrderPanel />}
-          {mobileTab === "positions" && <MobilePositionsPanel />}
-          {mobileTab === "markets"   && <MobileMarketsPanel />}
-        </div>
+.hp-ctas { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; justify-content: center; }
+.hp-cta-primary { display: inline-flex; align-items: center; gap: 8px; padding: 13px 32px; min-height: var(--touch-min); background: #ffffff; color: #000000; font-family: var(--font-body); font-weight: 600; font-size: 0.9375rem; letter-spacing: 0.01em; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: transform var(--t-fast), box-shadow var(--t-fast), background var(--t-fast); }
+.hp-cta-primary:hover { background: #e6e6e6; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,255,255,0.12); }
+.hp-cta-primary:active { transform: scale(0.98); }
+.hp-cta-primary:focus-visible { outline: 1px solid #fff; outline-offset: 3px; }
 
-        {/* Bottom nav — Home + Markets only */}
-        <BottomNav />
-      </div>
+.hp-cta-ghost { display: inline-flex; align-items: center; gap: 6px; padding: 13px 28px; min-height: var(--touch-min); background: transparent; color: rgba(255,255,255,0.55); font-family: var(--font-body); font-weight: 500; font-size: 0.9375rem; border: 1px solid rgba(255,255,255,0.16); border-radius: var(--radius-sm); cursor: pointer; text-decoration: none; transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast); }
+.hp-cta-ghost:hover { border-color: rgba(255,255,255,0.35); color: #ffffff; background: rgba(255,255,255,0.04); }
 
-      {/* ════════════════════════════════════════════════════════════════════
-          DESKTOP LAYOUT
-          ════════════════════════════════════════════════════════════════════ */}
-      <main
-        className="hidden md:flex flex-1 overflow-hidden mt-14"
-        style={{ gap: 1, background: T.border }}
-      >
-        {/* Left: market list */}
-        <div style={{ background: T.surface, flexShrink: 0, overflowY: "auto" }}>
-          <MarketList
-            markets={markets}
-            selected={selectedMarket}
-            onSelect={handleSelect}
-            wsConnected={wsConnected}
-          />
-        </div>
+.hp-stats { display: flex; align-items: center; gap: clamp(20px,5vw,48px); flex-wrap: wrap; justify-content: center; }
+.hp-stat  { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.hp-stat-value { font-family: var(--font-display); font-size: clamp(1.4rem,3vw,2rem); font-weight: 600; color: #ffffff; letter-spacing: -0.02em; line-height: 1; }
+.hp-stat-label { font-family: var(--font-mono); font-size: 0.62rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.35); }
 
-        {/* Center: chart + positions */}
-        <section style={{
-          flex: 1, display: "flex", flexDirection: "column",
-          minWidth: 0, overflow: "hidden", background: T.bg,
-        }}>
-          <DesktopMarketHeader />
+.hp-scroll-cue { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0; animation: hp-rise 0.6s ease 1.2s both; }
+.hp-scroll-line { width: 1px; height: 36px; background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.30)); animation: hp-scroll-pulse 2s ease-in-out infinite; }
+@keyframes hp-scroll-pulse { 0%,100% { opacity: 0.4; transform: scaleY(1); } 50% { opacity: 1; transform: scaleY(1.1); } }
+.hp-scroll-text { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.25); }
 
-          <PriceChart
-            symbol={selectedMarket}
-            price={active?.price ?? 0}
-            change={active?.change ?? 0}
-            candles={candles}
-            unrealizedPnl={openPositions.length > 0 ? totalPnl : undefined}
-            isLive={wsConnected && (active?.isLive ?? false)}
-          />
+/* Sections */
+.hp-section      { padding: clamp(64px,10vw,120px) var(--space-6); }
+.hp-section-dark { background: var(--bg-paper); }
+.hp-section-deep { background: var(--bg-deep); }
+.hp-container    { max-width: 1120px; margin: 0 auto; }
 
-          <PositionTable
-            positions={positions}
-            currentPrices={prices}
-            onClose={closePosition}
-          />
-        </section>
+.hp-section-header { margin-bottom: clamp(40px,6vw,72px); }
+.hp-section-header-row { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; }
 
-        {/* Right: order panel */}
-        <aside style={{
-          width: 288, display: "flex", flexDirection: "column",
-          height: "100%", flexShrink: 0,
-          background: T.surface, borderLeft: `1px solid ${T.border}`,
-        }}>
-          <OrderSidebarHeader />
+.hp-label-tag  { display: inline-block; font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); margin-bottom: var(--space-3); }
+.hp-section-title { font-family: var(--font-display); font-size: clamp(2rem,5vw,4rem); font-weight: 600; color: var(--ink); letter-spacing: -0.02em; line-height: 1.05; }
+.hp-section-sub { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-5); letter-spacing: 0.06em; margin-top: var(--space-2); }
 
-          <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
-            {/* Inputs */}
-            {[
-              { label: "Size (USDT)", placeholder: "0.00", suffix: "USDT" },
-              { label: "Leverage",    placeholder: "1×",   suffix: "×" },
-            ].map((field) => (
-              <div key={field.label} style={{ marginBottom: 14 }}>
-                <div style={{
-                  ...mono, fontSize: 9, fontWeight: 700,
-                  textTransform: "uppercase", letterSpacing: 1,
-                  color: T.ink4, marginBottom: 5,
-                }}>
-                  {field.label}
-                </div>
-                <div style={{ position: "relative" }}>
-                  <input type="text" placeholder={field.placeholder} style={{
-                    width: "100%", background: T.bgPaper,
-                    border: `1.5px solid ${T.border2}`, borderRadius: 4,
-                    padding: "10px 40px 10px 12px",
-                    ...mono, fontSize: 15, color: T.ink, outline: "none",
-                  }} />
-                  <span style={{
-                    position: "absolute", right: 10, top: "50%",
-                    transform: "translateY(-50%)",
-                    ...mono, fontSize: 9, fontWeight: 700, color: T.red,
-                  }}>{field.suffix}</span>
-                </div>
-              </div>
-            ))}
+.hp-live-row  { display: flex; align-items: center; gap: var(--space-3); }
+.hp-live-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: var(--green-dim); border: 1px solid var(--border-green); border-radius: var(--radius-pill); font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--green); }
+.hp-link-btn { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-4); background: none; border: none; cursor: pointer; padding: 8px 0; min-height: var(--touch-min); transition: color var(--t-fast); }
+.hp-link-btn:hover { color: var(--ink); }
 
-            {/* Leverage chips */}
-            <div style={{ display: "flex", gap: 5, marginBottom: 16, flexWrap: "wrap" }}>
-              {["1×", "5×", "10×", "25×", "50×"].map((lev) => (
-                <button key={lev} style={{
-                  padding: "4px 10px", border: `1px solid ${T.border2}`,
-                  borderRadius: 3, background: "transparent",
-                  ...mono, fontSize: 9, fontWeight: 700, color: T.ink3,
-                  cursor: "pointer",
-                }}>{lev}</button>
-              ))}
-            </div>
+/* Steps grid */
+.hp-steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.hp-step { background: var(--bg-paper); padding: clamp(28px,4vw,48px) clamp(24px,3vw,36px); position: relative; transition: background var(--t-base); }
+.hp-step:hover { background: var(--bg-deep); }
+.hp-step::before { content: ''; position: absolute; top:0; left:0; right:0; height: 1px; background: var(--ink-3); transform: scaleX(0); transform-origin: left; transition: transform var(--t-base); }
+.hp-step:hover::before { transform: scaleX(1); }
+.hp-step-num   { font-family: var(--font-display); font-size: 3rem; font-weight: 700; color: rgba(255,255,255,0.06); line-height: 1; margin-bottom: var(--space-4); letter-spacing: -0.02em; }
+.hp-step-title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; color: var(--ink); margin-bottom: var(--space-3); line-height: 1.2; }
+.hp-step-desc  { font-family: var(--font-body); font-size: 0.875rem; color: var(--ink-4); line-height: 1.7; }
 
-            {/* Summary */}
-            <div style={{
-              display: "grid", gridTemplateColumns: "1fr 1fr",
-              gap: 8, marginBottom: 16,
-              padding: "10px 12px", background: T.bgDeep,
-              borderRadius: 4, border: `1px solid ${T.border}`,
-            }}>
-              {[
-                { l: "Entry",    v: formatPrice(active?.price ?? 0) },
-                { l: "Est. Liq", v: "—" },
-                { l: "Margin",   v: "—" },
-                { l: "Notional", v: "—" },
-              ].map((s) => (
-                <div key={s.l}>
-                  <div style={{ ...mono, fontSize: 8, textTransform: "uppercase",
-                    letterSpacing: 1, color: T.ink4 }}>{s.l}</div>
-                  <div style={{ ...mono, fontSize: 11, color: T.ink2, marginTop: 1 }}>{s.v}</div>
-                </div>
-              ))}
-            </div>
+/* Markets grid */
+.hp-markets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.hp-market-card { background: var(--bg-paper); padding: var(--space-5); text-align: left; border: none; cursor: pointer; display: flex; flex-direction: column; gap: var(--space-2); transition: background var(--t-fast); min-height: var(--touch-min); }
+.hp-market-card:hover { background: var(--bg-deep); }
+.hp-market-card:focus-visible { outline: 1px solid var(--border-2); outline-offset: -2px; }
+.hp-market-top { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
+.hp-market-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.04); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.hp-market-pair { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.hp-market-symbol { font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 700; color: var(--ink); letter-spacing: 0.04em; }
+.hp-market-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-5); letter-spacing: 0.04em; }
+.hp-market-private { display: flex; align-items: center; gap: 3px; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-4); flex-shrink: 0; }
+.hp-market-price { font-family: var(--font-mono); font-size: clamp(1.2rem,3vw,1.6rem); font-weight: 700; color: var(--ink); font-feature-settings: 'tnum' 1; letter-spacing: -0.02em; line-height: 1; }
+.hp-market-change { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; font-feature-settings: 'tnum' 1; }
+.hp-market-footer { display: flex; justify-content: space-between; gap: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border); margin-top: var(--space-2); }
+.hp-market-meta { display: flex; flex-direction: column; gap: 2px; }
+.hp-market-meta-label { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-5); }
+.hp-market-meta-value { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; color: var(--ink-3); font-feature-settings: 'tnum' 1; }
 
-            <TradingPanel
-              market={selectedMarket}
-              currentPrice={active?.price ?? 0}
-              computationStatus={computationStatus}
-              lastTxSig={lastTxSig}
-              onOpenPosition={openPosition}
-            />
-          </div>
-        </aside>
-      </main>
-    </div>
-  );
+/* Features grid */
+.hp-features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.hp-feature { background: var(--bg-paper); padding: clamp(28px,4vw,44px) clamp(24px,3vw,40px); display: flex; gap: var(--space-5); align-items: flex-start; transition: background var(--t-base); }
+.hp-feature:hover { background: var(--bg-deep); }
+.hp-feature-num   { font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; color: rgba(255,255,255,0.05); line-height: 1; flex-shrink: 0; width: 52px; padding-top: 4px; }
+.hp-feature-body  { flex: 1; }
+.hp-feature-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; color: var(--ink); margin-bottom: var(--space-3); line-height: 1.2; }
+.hp-feature-desc  { font-family: var(--font-body); font-size: 0.875rem; color: var(--ink-4); line-height: 1.7; }
+
+/* Final CTA */
+.hp-cta-section { background: var(--bg-paper); padding: clamp(80px,12vw,140px) var(--space-6); position: relative; overflow: hidden; border-top: 1px solid var(--border); }
+.hp-cta-section::before { content: ''; position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(255,255,255,0.03) 0%, transparent 70%); pointer-events: none; }
+.hp-cta-inner { max-width: 640px; margin: 0 auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-5); position: relative; z-index: 1; }
+.hp-cta-eyebrow  { font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-4); }
+.hp-cta-headline { font-family: var(--font-display); font-size: clamp(2.4rem,7vw,5.5rem); font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.02; }
+.hp-cta-sub      { font-family: var(--font-body); font-size: 1rem; line-height: 1.7; color: var(--ink-4); }
+.hp-cta-final { display: inline-flex; align-items: center; gap: 8px; padding: 14px 36px; min-height: var(--touch-min); background: var(--ink); color: #000000; font-family: var(--font-body); font-weight: 600; font-size: 0.9375rem; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: transform var(--t-fast), box-shadow var(--t-fast); }
+.hp-cta-final:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(255,255,255,0.08); }
+.hp-cta-final:active { transform: scale(0.98); }
+.hp-cta-final:focus-visible { outline: 1px solid var(--border-2); outline-offset: 3px; }
+
+/* Footer */
+.hp-footer { background: var(--bg); border-top: 1px solid var(--border); padding: var(--space-6); }
+.hp-footer-inner { max-width: 1120px; margin: 0 auto; display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.hp-footer-brand { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+.hp-footer-sep   { width: 1px; height: 14px; background: var(--border); }
+.hp-footer-meta  { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-5); letter-spacing: 0.06em; }
+.hp-footer-links { display: flex; gap: var(--space-5); margin-left: auto; }
+.hp-footer-links a { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-5); text-decoration: none; letter-spacing: 0.04em; transition: color var(--t-fast); }
+.hp-footer-links a:hover { color: var(--ink-2); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE TWEAKS
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .hp-hero-content  { padding: 0 var(--space-4); gap: 20px; }
+  .hp-ctas          { flex-direction: column; align-items: stretch; }
+  .hp-cta-primary,
+  .hp-cta-ghost     { justify-content: center; }
+  .hp-stats         { gap: 24px; }
+  .hp-markets-grid,
+  .hp-steps-grid,
+  .hp-features-grid { grid-template-columns: 1fr; }
+  .hp-feature       { flex-direction: column; gap: var(--space-3); }
+  .hp-feature-num   { font-size: 2rem; width: auto; }
+  .hp-section-header-row { flex-direction: column; align-items: flex-start; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACCESSIBILITY
+═══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  .enc-glow, .live-dot, .btn-long, .btn-short { forced-color-adjust: none; }
+}
+@media print {
+  .bottom-nav, .top-nav { display: none; }
+  body { background: white; color: black; }
 }
