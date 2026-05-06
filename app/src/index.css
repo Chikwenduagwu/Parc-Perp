@@ -4,74 +4,68 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ═══════════════════════════════════════════════════
+  /* ═══════════════════════════════════════════════════
    DESIGN TOKENS
-   Palette: cornsilk bg · black ink · red accent
+   Palette: black · white · cornsilk grid
 ═══════════════════════════════════════════════════ */
 :root {
   /* ── Backgrounds ── */
-  --bg:           #FFF8DC;   /* cornsilk */
-  --bg-2:         #FFF0B3;   /* deeper cornsilk */
-  --bg-3:         #F5E696;   /* pressed */
-  --surface:      #FFFEF8;   /* near-white warm panel */
-  --surface-2:    #FFFBEC;   /* panel variant */
+  --bg:           #FFFFFF;
+  --bg-2:         #F5F5F5;
+  --bg-3:         #EDEDED;
+  --surface:      #FFFFFF;
+  --surface-2:    #FAFAFA;
 
-  /* ── Ink — ALL ≥ 4.5:1 on cornsilk ──
-     #0A0A0A on #FFF8DC = 19.1:1 ✓
-     #2C2A26 on #FFF8DC = 13.8:1 ✓
-     #5C5851 on #FFF8DC =  7.0:1 ✓
-     #7A7570 on #FFF8DC =  4.8:1 ✓ (labels only)  */
-  --ink:          #0A0A0A;
-  --ink-2:        #2C2A26;
-  --ink-3:        #5C5851;
-  --ink-4:        #7A7570;
-  --ink-5:        #B0A89E;   /* decorative only */
+  /* ── Ink ── */
+  --ink:          #000000;
+  --ink-2:        #111111;
+  --ink-3:        #333333;
+  --ink-4:        #666666;
+  --ink-5:        #999999;
 
-  /* ── Red — primary accent (replaces neon green from dark theme) ──
-     #9B1C1C on #FFF8DC = 8.4:1 ✓ AA+
-     #C0392B on #FFF8DC = 5.6:1 ✓ AA          */
-  --red:          #C0392B;
-  --red-bold:     #9B1C1C;
-  --red-bright:   #E74C3C;
-  --red-dim:      rgba(192,57,43,0.08);
-  --red-tint:     rgba(192,57,43,0.14);
-  --red-glow:     rgba(231,76,60,0.22);
+  /* ── Accent (converted to black scale) ── */
+  --red:          #000000;
+  --red-bold:     #000000;
+  --red-bright:   #222222;
+  --red-dim:      rgba(0,0,0,0.05);
+  --red-tint:     rgba(0,0,0,0.08);
+  --red-glow:     rgba(0,0,0,0.15);
 
-  /* ── Green — profit signals only ── */
-  --green:        #0D7A52;
-  --green-bold:   #0A5E3F;
-  --green-bright: #16A96E;
-  --green-dim:    rgba(13,122,82,0.08);
-  --green-tint:   rgba(13,122,82,0.14);
-  --green-glow:   rgba(22,169,110,0.22);
+  /* ── Green → neutralized ── */
+  --green:        #000000;
+  --green-bold:   #000000;
+  --green-bright: #222222;
+  --green-dim:    rgba(0,0,0,0.05);
+  --green-tint:   rgba(0,0,0,0.08);
+  --green-glow:   rgba(0,0,0,0.15);
 
-  /* ── Amber ── */
-  --amber:        #956D00;
-  --amber-dim:    rgba(149,109,0,0.09);
-  --cornsilk-mid: #EDD98A;
-  --cornsilk-deep:#C9A84C;
+  /* ── Cornsilk Grid Accent ── */
+  --amber:        #000000;
+  --amber-dim:    rgba(0,0,0,0.05);
+  --cornsilk-mid: #FFF8DC;
+  --cornsilk-deep:#F5E6B3;
 
-  /* ── Blue ── */
-  --blue:         #1A4E7A;
-  --blue-dim:     rgba(26,78,122,0.08);
+  /* ── Blue → neutralized ── */
+  --blue:         #000000;
+  --blue-dim:     rgba(0,0,0,0.05);
 
   /* ── Borders ── */
-  --border:       rgba(10,10,10,0.10);
-  --border-2:     rgba(10,10,10,0.17);
-  --border-3:     rgba(10,10,10,0.26);
-  --border-red:   rgba(192,57,43,0.24);
-  --border-green: rgba(13,122,82,0.22);
+  --border:       rgba(0,0,0,0.08);
+  --border-2:     rgba(0,0,0,0.14);
+  --border-3:     rgba(0,0,0,0.22);
+  --border-red:   rgba(0,0,0,0.18);
+  --border-green: rgba(0,0,0,0.18);
 
   /* ── Fonts ── */
   --font-display: 'Cormorant Garamond', Georgia, serif;
   --font-body:    'Lora', Georgia, serif;
   --font-mono:    'IBM Plex Mono', 'Courier New', monospace;
 
-  /* ── Shadows (warm-tinted) ── */
-  --shadow-xs: 0 1px 2px rgba(10,10,10,0.07);
-  --shadow-sm: 0 2px 8px rgba(10,10,10,0.09), 0 1px 2px rgba(10,10,10,0.05);
-  --shadow-md: 0 4px 18px rgba(10,10,10,0.11), 0 2px 4px rgba(10,10,10,0.06);
-  --shadow-lg: 0 8px 36px rgba(10,10,10,0.13), 0 4px 8px rgba(10,10,10,0.07);
+  /* ── Shadows ── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 18px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-lg: 0 8px 36px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
 
   /* ── Radii ── */
   --radius-sm:   6px;
@@ -95,7 +89,7 @@
   --t-slow:   380ms cubic-bezier(0.4,0,0.2,1);
   --t-spring: 320ms cubic-bezier(0.34,1.56,0.64,1);
 
-  /* ── Legacy map — so old component vars still work ── */
+  /* ── Legacy map ── */
   --color-bg:       var(--bg);
   --color-surface:  var(--surface);
   --color-surface-2:var(--surface-2);
@@ -109,37 +103,56 @@
 }
 
 /* ═══════════════════════════════════════════════════
-   BASE RESET
+   BASE RESET + GRID BACKGROUND
 ═══════════════════════════════════════════════════ */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0; padding: 0;
   -webkit-tap-highlight-color: transparent;
 }
+
 html {
   font-size: 16px;
   scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
 }
+
 html, body {
-  min-height: 100%; min-height: 100dvh;
-  background: var(--bg);
+  min-height: 100%;
+  min-height: 100dvh;
+
+  /* 🔥 Cornsilk Grid Background */
+  background-color: #FFFFFF;
+  background-image:
+    linear-gradient(to right, rgba(255,248,220,0.6) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,248,220,0.6) 1px, transparent 1px);
+  background-size: 40px 40px;
+
   color: var(--ink-2);
   font-family: var(--font-body);
   line-height: 1.65;
   letter-spacing: 0.01em;
+
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+
   overflow-x: hidden;
 }
-body { padding-bottom: env(safe-area-inset-bottom); }
 
-::selection { background: var(--cornsilk-mid); color: var(--ink); }
-:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; border-radius: 3px; }
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+}
 
+/* Selection + Focus */
+::selection {
+  background: var(--cornsilk-mid);
+  color: #000000;
+}
+
+:focus-visible {
+  outline: 2px solid #000000;
+  outline-offset: 3px;
+  border-radius: 3px;
+}
 /* ═══════════════════════════════════════════════════
    TYPOGRAPHY
 ═══════════════════════════════════════════════════ */
