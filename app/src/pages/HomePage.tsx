@@ -1,386 +1,202 @@
 /**
- * HomePage.tsx — Dark monochrome landing
- * Palette: #000000 bg · #FFFFFF ink · grayscale accents · green for profit signals
- * Hero: full-bleed Hyperspeed with white + red car lights
+ * HomePage.tsx — Full-screen Hyperspeed hero
+ * Theme: Cornsilk · Crimson · Black
+ * Layout: Hyperspeed canvas fills 100dvh, hero text floats above
  */
 
-import { useMemo } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import Layout from "../components/Layout";
 import Hyperspeed from "../components/Hyperspeed";
-import { useMarketData } from "../hooks/useMarketData";
-import { MARKETS } from "../lib/constants";
 import type { AppPage } from "../App";
 
-const SPEED_OPTS = {
-  distortion:                   "turbulentDistortion",
-  length:                       400,
-  roadWidth:                    10,
-  islandWidth:                  2,
-  lanesPerRoad:                 4,
-  fov:                          90,
-  fovSpeedUp:                   150,
-  speedUp:                      2,
-  carLightsFade:                0.4,
-  totalSideLightSticks:         20,
-  lightPairsPerRoadWay:         40,
-  shoulderLinesWidthPercentage: 0.05,
-  brokenLinesWidthPercentage:   0.1,
-  brokenLinesLengthPercentage:  0.5,
-  lightStickWidth:              [0.12, 0.5],
-  lightStickHeight:             [1.3, 1.7],
-  movingAwaySpeed:              [60, 80],
-  movingCloserSpeed:            [-120, -160],
-  carLightsLength:              [400 * 0.03, 400 * 0.2],
-  carLightsRadius:              [0.05, 0.14],
-  carWidthPercentage:           [0.3, 0.5],
-  carShiftX:                    [-0.8, 0.8],
-  carFloorSeparation:           [0, 5],
-  colors: {
-    roadColor:     0x080808,
-    islandColor:   0x0a0a0a,
-    background:    0x000000,
-    shouldderLines:0x111111,
-    brokenLines:   0x111111,
-    leftCars:      [0xffffff, 0xe0e0e0, 0xcccccc],
-    rightCars:     [0xcc0000, 0x990000, 0x660000],
-    sticks:        0xffffff,
-  },
-};
-
-const PRIVACY_FEATURES = [
-  {
-    n: "01",
-    title: "Encrypted Positions",
-    desc: "Size, entry price, and leverage are encrypted with x25519 + RescueCipher before touching the blockchain. Zero plaintext on-chain.",
-  },
-  {
-    n: "02",
-    title: "Private Liquidations",
-    desc: "Liquidation thresholds computed entirely inside Arcium MPC. Keepers learn only a boolean — never your prices or leverage.",
-  },
-  {
-    n: "03",
-    title: "Confidential PnL",
-    desc: "PnL calculated in MPC and returned encrypted. Only you — with your private key — can decrypt the result.",
-  },
-  {
-    n: "04",
-    title: "Anti Copy-Trading",
-    desc: "Zero plaintext position data on-chain. Bots and copy-traders see nothing. Your strategy stays yours.",
-  },
-];
-
-const HOW_IT_WORKS = [
-  {
-    step: "01",
-    title: "Encrypt Inputs",
-    desc: "Browser generates ephemeral x25519 keypair. Position data encrypted with shared secret before leaving your device.",
-  },
-  {
-    step: "02",
-    title: "Submit to Solana",
-    desc: "Encrypted blobs stored on-chain via Anchor program. Computation queued to Arcium MPC network.",
-  },
-  {
-    step: "03",
-    title: "MPC Computes",
-    desc: "Arcium threshold nodes execute the circuit on encrypted data. No single node sees plaintext.",
-  },
-  {
-    step: "04",
-    title: "Decrypt Locally",
-    desc: "Encrypted result emitted in a Solana event. Your browser decrypts it. Nobody else can.",
-  },
-];
-
 interface Props {
-  onLaunchApp:    () => void;
-  onSelectMarket: (symbol: string) => void;
+  onNavigate: (p: AppPage) => void;
 }
 
-export default function HomePage({ onLaunchApp, onSelectMarket }: Props) {
-  const { connected }            = useWallet();
-  const { setVisible }           = useWalletModal();
-  const { markets, wsConnected } = useMarketData();
-  const speedOpts                = useMemo(() => SPEED_OPTS, []);
+// ─── Design tokens (same as TradingPage) ──────────────────────────────────────
+const T = {
+  cornsilk:    "#FFF8DC",
+  cornsilkMid: "#EDD98A",
+  red:         "#B71C1C",
+  redBright:   "#D32F2F",
+  redBorder:   "rgba(183,28,28,0.40)",
+  redGlow:     "rgba(211,47,47,0.25)",
+  ink:         "#0D0D0D",
+};
 
-  function handleCTA() {
-    if (!connected) setVisible(true);
-    else onLaunchApp();
-  }
-
-  function fmt(p: number): string {
-    if (!p) return "—";
-    if (p >= 10000) return `$${p.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-    if (p >= 1)     return `$${p.toFixed(2)}`;
-    return `$${p.toFixed(4)}`;
-  }
-
+export default function HomePage({ onNavigate }: Props) {
   return (
-    <div className="hp-root">
-      <Layout activePage="home" onNavigate={(p) => p === "trade" && onLaunchApp()} />
+    <div style={{
+      position: "relative",
+      width: "100%",
+      height: "100dvh",
+      overflow: "hidden",
+      background: T.ink,
+    }}>
 
-      {/* ══════════════════════════════════════
-          HERO
-      ══════════════════════════════════════ */}
-      <section className="hp-hero">
-        <div className="hp-hero-canvas" aria-hidden="true">
-          <Hyperspeed effectOptions={speedOpts} />
-        </div>
-        <div className="hp-hero-vignette" aria-hidden="true" />
+      {/* ── Hyperspeed canvas — fills full screen ────────────────────────── */}
+      <Hyperspeed />
 
-        <div className="hp-hero-content">
-          {/* Eyebrow */}
-          <div className="hp-eyebrow">
-            <span className="hp-eyebrow-dot" />
-            <span>Powered by Arcium MPC · Live on Solana</span>
-          </div>
+      {/* ── Gradient overlay — fade bottom for text legibility ──────────── */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: `
+          radial-gradient(ellipse 80% 60% at 50% 110%, rgba(183,28,28,0.18) 0%, transparent 70%),
+          linear-gradient(to top, rgba(10,10,10,0.75) 0%, transparent 55%),
+          linear-gradient(to bottom, rgba(10,10,10,0.45) 0%, transparent 35%)
+        `,
+        pointerEvents: "none",
+        zIndex: 1,
+      }} />
 
-          {/* Headline */}
-          <h1 className="hp-headline">
-            <span className="hp-headline-line hp-headline-white">Trade perps.</span>
-            <span className="hp-headline-line hp-headline-outline">Stay invisible.</span>
-          </h1>
+      {/* ── Hero content ────────────────────────────────────────────────── */}
+      <div style={{
+        position: "absolute", inset: 0,
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        zIndex: 2, padding: "0 20px",
+        textAlign: "center",
+      }}>
 
-          {/* Sub */}
-          <p className="hp-sub">
-            Private perpetual futures. Positions, liquidations, and PnL compute
-            inside <span className="hp-sub-accent">Arcium MPC</span> — only your
-            result reaches the chain.
-          </p>
-
-          {/* CTAs */}
-          <div className="hp-ctas">
-            <button className="hp-cta-primary" onClick={handleCTA}>
-              {connected ? "Launch Terminal" : "Connect Wallet"}
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                arrow_forward
-              </span>
-            </button>
-            <a
-              href="https://docs.arcium.com"
-              target="_blank"
-              rel="noreferrer"
-              className="hp-cta-ghost"
-            >
-              Read Docs
-            </a>
-          </div>
-
-          {/* Stats */}
-          <div className="hp-stats">
-            {[
-              { v: "100%",    l: "Positions encrypted" },
-              { v: "0 bytes", l: "Plaintext on-chain"  },
-              { v: "2-of-3",  l: "MPC threshold"       },
-            ].map((s) => (
-              <div className="hp-stat" key={s.l}>
-                <span className="hp-stat-value">{s.v}</span>
-                <span className="hp-stat-label">{s.l}</span>
-              </div>
-            ))}
-          </div>
+        {/* Eyebrow chip */}
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 7,
+          padding: "4px 14px", borderRadius: 3, marginBottom: 24,
+          background: "rgba(183,28,28,0.14)",
+          border: `1px solid ${T.redBorder}`,
+        }}>
+          <span style={{
+            width: 5, height: 5, borderRadius: "50%",
+            background: T.redBright, display: "inline-block",
+            boxShadow: `0 0 8px ${T.redBright}`,
+            animation: "hs-pulse 2s ease-in-out infinite",
+          }} />
+          <span style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 10, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 2,
+            color: T.redBright,
+          }}>
+            MPC-Encrypted Trading · Live
+          </span>
         </div>
 
-        {/* Scroll cue */}
-        <div className="hp-scroll-cue" aria-hidden="true">
-          <span className="hp-scroll-line" />
-          <span className="hp-scroll-text">scroll</span>
-        </div>
-      </section>
+        {/* Wordmark */}
+        <h1 style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontSize: "clamp(3.5rem, 12vw, 8rem)",
+          fontWeight: 600, fontStyle: "italic",
+          letterSpacing: "-0.02em", lineHeight: 1,
+          color: T.cornsilk,
+          textShadow: `0 0 60px rgba(255,248,220,0.15), 0 2px 4px rgba(0,0,0,0.6)`,
+          marginBottom: 16,
+        }}>
+          Arcium
+        </h1>
 
-      {/* ══════════════════════════════════════
-          HOW IT WORKS
-      ══════════════════════════════════════ */}
-      <section className="hp-section hp-section-dark">
-        <div className="hp-container">
-          <div className="hp-section-header">
-            <span className="hp-label-tag">Arcium MPC</span>
-            <h2 className="hp-section-title">How privacy works</h2>
-          </div>
-          <div className="hp-steps-grid">
-            {HOW_IT_WORKS.map((s) => (
-              <div className="hp-step" key={s.step}>
-                <div className="hp-step-num">{s.step}</div>
-                <h3 className="hp-step-title">{s.title}</h3>
-                <p className="hp-step-desc">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        {/* Tagline */}
+        <p style={{
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: "clamp(11px, 2vw, 14px)",
+          fontWeight: 400, letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: T.cornsilkMid,
+          opacity: 0.8,
+          maxWidth: 420,
+          lineHeight: 1.7,
+          marginBottom: 40,
+        }}>
+          Private perpetuals · Encrypted positions · On-chain settlement
+        </p>
 
-      {/* ══════════════════════════════════════
-          LIVE MARKETS
-      ══════════════════════════════════════ */}
-      <section className="hp-section hp-section-deep">
-        <div className="hp-container">
-          <div className="hp-section-header hp-section-header-row">
-            <div>
-              <div className="hp-live-row">
-                <h2 className="hp-section-title">Markets</h2>
-                {wsConnected && (
-                  <div className="hp-live-badge">
-                    <span
-                      className="live-dot"
-                      style={{ background: "var(--green)" }}
-                    />
-                    <span>Live</span>
-                  </div>
-                )}
-              </div>
-              <p className="hp-section-sub">Prices via Binance WebSocket</p>
-            </div>
-            <button className="hp-link-btn" onClick={onLaunchApp}>
-              View all
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 14 }}
-              >
-                arrow_forward
-              </span>
-            </button>
-          </div>
+        {/* CTA buttons */}
+        <div style={{
+          display: "flex", gap: 12, flexWrap: "wrap",
+          justifyContent: "center",
+        }}>
+          {/* Primary — launch app */}
+          <button
+            onClick={() => onNavigate("trade")}
+            style={{
+              padding: "13px 32px",
+              background: T.red,
+              border: `1px solid ${T.redBright}`,
+              borderRadius: 3,
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: 12, fontWeight: 700,
+              textTransform: "uppercase", letterSpacing: 2,
+              color: T.cornsilk,
+              cursor: "pointer",
+              boxShadow: `0 0 24px ${T.redGlow}`,
+              transition: "all 180ms ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = T.redBright;
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 36px ${T.redGlow}`;
+              (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = T.red;
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 24px ${T.redGlow}`;
+              (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+            }}
+          >
+            Launch App →
+          </button>
 
-          <div className="hp-markets-grid">
-            {MARKETS.slice(0, 6).map((m) => {
-              const live = markets[m.symbol];
-              const isUp = (live?.change ?? 0) >= 0;
-              return (
-                <button
-                  key={m.symbol}
-                  className="hp-market-card"
-                  onClick={() => onSelectMarket(m.symbol)}
-                >
-                  <div className="hp-market-top">
-                    <div className="hp-market-icon">
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: 16, color: "var(--ink-4)" }}
-                      >
-                        {m.icon}
-                      </span>
-                    </div>
-                    <div className="hp-market-pair">
-                      <span className="hp-market-symbol">{m.symbol}</span>
-                      <span className="hp-market-name">{m.label}</span>
-                    </div>
-                    <div className="hp-market-private">
-                      <span
-                        className="material-symbols-outlined icon-fill icon-sm"
-                        style={{ color: "var(--ink-4)" }}
-                      >
-                        shield
-                      </span>
-                      <span>Private</span>
-                    </div>
-                  </div>
-
-                  <div className="hp-market-price">
-                    {fmt(live?.price ?? m.seedPrice)}
-                  </div>
-                  <div
-                    className="hp-market-change"
-                    style={{
-                      color: isUp ? "var(--green)" : "#E05C5C",
-                    }}
-                  >
-                    {isUp ? "▲" : "▼"} {Math.abs(live?.change ?? 0).toFixed(2)}%
-                  </div>
-
-                  <div className="hp-market-footer">
-                    <div className="hp-market-meta">
-                      <span className="hp-market-meta-label">24h Vol</span>
-                      <span className="hp-market-meta-value">
-                        {live?.volume24h ?? "—"}
-                      </span>
-                    </div>
-                    <div className="hp-market-meta">
-                      <span className="hp-market-meta-label">Funding</span>
-                      <span className="hp-market-meta-value">
-                        {(live?.fundingRate ?? 0.0082).toFixed(4)}%
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          PRIVACY GUARANTEES
-      ══════════════════════════════════════ */}
-      <section className="hp-section hp-section-dark">
-        <div className="hp-container">
-          <div className="hp-section-header">
-            <span className="hp-label-tag">Guarantees</span>
-            <h2 className="hp-section-title">What stays private</h2>
-          </div>
-          <div className="hp-features-grid">
-            {PRIVACY_FEATURES.map((f) => (
-              <div className="hp-feature" key={f.n}>
-                <div className="hp-feature-num">{f.n}</div>
-                <div className="hp-feature-body">
-                  <h3 className="hp-feature-title">{f.title}</h3>
-                  <p className="hp-feature-desc">{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          FINAL CTA
-      ══════════════════════════════════════ */}
-      <section className="hp-cta-section">
-        <div className="hp-cta-inner">
-          <p className="hp-cta-eyebrow">Ready?</p>
-          <h2 className="hp-cta-headline">
-            Trade without<br />fear of exposure.
-          </h2>
-          <p className="hp-cta-sub">
-            Your positions. Your secrets.<br />
-            Powered by Arcium MPC.
-          </p>
-          <button className="hp-cta-final" onClick={handleCTA}>
-            {connected ? "Open Trading Terminal" : "Connect Wallet to Start"}
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 16 }}
-            >
-              arrow_forward
-            </span>
+          {/* Secondary — markets */}
+          <button
+            onClick={() => onNavigate("markets")}
+            style={{
+              padding: "13px 32px",
+              background: "transparent",
+              border: `1px solid rgba(255,248,220,0.25)`,
+              borderRadius: 3,
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: 12, fontWeight: 700,
+              textTransform: "uppercase", letterSpacing: 2,
+              color: T.cornsilk,
+              cursor: "pointer",
+              opacity: 0.8,
+              transition: "all 180ms ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,248,220,0.55)";
+              (e.currentTarget as HTMLButtonElement).style.opacity = "1";
+              (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,248,220,0.25)";
+              (e.currentTarget as HTMLButtonElement).style.opacity = "0.8";
+              (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+            }}
+          >
+            View Markets
           </button>
         </div>
-      </section>
+      </div>
 
-      {/* Footer */}
-      <footer className="hp-footer">
-        <div className="hp-footer-inner">
-          <span className="hp-footer-brand">StealthPerp</span>
-          <span className="hp-footer-sep" />
-          <span className="hp-footer-meta">
-            Encrypted by Arcium · Built on Solana
-          </span>
-          <div className="hp-footer-links">
-            <a
-              href="https://docs.arcium.com"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Docs
-            </a>
-            <a href="https://github.com" target="_blank" rel="noreferrer">
-              GitHub
-            </a>
-          </div>
-        </div>
-      </footer>
+      {/* ── Bottom hint ─────────────────────────────────────────────────────── */}
+      <div style={{
+        position: "absolute", bottom: 28, left: 0, right: 0,
+        display: "flex", justifyContent: "center",
+        zIndex: 2, pointerEvents: "none",
+      }}>
+        <span style={{
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: 9, letterSpacing: 3,
+          textTransform: "uppercase",
+          color: T.cornsilk, opacity: 0.3,
+        }}>
+          Hold to accelerate
+        </span>
+      </div>
+
+      {/* ── Keyframe for pulsing dot (injected once) ───────────────────────── */}
+      <style>{`
+        @keyframes hs-pulse {
+          0%, 100% { opacity: 1; box-shadow: 0 0 8px #D32F2F; }
+          50%       { opacity: 0.5; box-shadow: 0 0 3px #D32F2F; }
+        }
+      `}</style>
     </div>
   );
 }
