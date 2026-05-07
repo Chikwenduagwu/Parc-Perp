@@ -143,11 +143,16 @@ html, body {
   font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
   overflow-x: hidden;
 }
-body { padding-bottom: env(safe-area-inset-bottom); }
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
 
 ::selection { background: rgba(255,255,255,0.15); color: var(--ink); }
 :focus-visible { outline: 1px solid var(--border-2); outline-offset: 3px; border-radius: 3px; }
-
 /* ═══════════════════════════════════════════════════════════════
    TYPOGRAPHY
 ═══════════════════════════════════════════════════════════════ */
