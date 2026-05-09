@@ -2,13 +2,13 @@
 
 **Private perpetual futures on Solana, powered by Arcium MPC.**
 
-Position size, entry price, leverage, and liquidation thresholds never appear in plaintext on-chain. Encrypted inputs flow into a threshold MPC cluster, computations execute over ciphertext, and only the final realized PnL is returned — decrypted exclusively by the trader.
+Position size, entry price, leverage, and liquidation thresholds never appear in plaintext on-chain. Encrypted inputs flow into a threshold MPC cluster, computations execute over ciphertext, and only the final realized PnL is returneddecrypted exclusively by the trader.
 
 ---
 
 ## The Problem
 
-Every existing on-chain perpetuals protocol publishes full position data to the ledger. Size, direction, leverage, and liquidation price are readable by anyone — MEV bots, copy-traders, and liquidation hunters alike. This is not a UX deficiency. It is a structural property of transparent execution environments.
+Every existing on-chain perpetuals protocol publishes full position data to the ledger. Size, direction, leverage, and liquidation price are readable by anyone MEV bots, copy-traders, and liquidation hunters alike. This is not a UX deficiency. It is a structural property of transparent execution environments.
 
 Parc Perps removes that constraint entirely.
 
@@ -207,7 +207,8 @@ PORT=4000
 
 ## Deployment
 
-Full step-by-step deployment instructions — including circuit publication, Gitpod-based circuit registration, Render backend deployment, and Vercel frontend deployment — are documented in `DEPLOYMENT.md`.
+Full step-by-step deployment instructions including circuit publication, Gitpod-based circuit registration, Render backend deployment, and Vercel frontend deployment 
+are documented in `DEPLOYMENT.md`.
 
 The pre-built Anchor program is already deployed to Solana devnet:
 
